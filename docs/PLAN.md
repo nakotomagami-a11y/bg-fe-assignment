@@ -52,10 +52,12 @@ See `ARCHITECTURE.md` for the full breakdown — data flow, interfaces, file map
 
 ### Phase 1 — Scaffold & WebSocket engine
 
-- [ ] `pnpm create vite@latest . --template react-ts`
+- [x] pnpm monorepo with `client` and `server` workspaces — `pnpm dev` at root boots both
+- [x] Vite + React 19 + TypeScript strict scaffold in `client/`
+- [x] `@/*` and `@server/*` tsconfig + Vite path aliases wired up
 - [ ] Add deps: `zustand`, `@tanstack/react-virtual`, `ts-pattern`
-- [ ] Add dev deps: `tailwindcss @tailwindcss/vite`, `eslint @eslint/js typescript-eslint eslint-plugin-react-hooks`, `vitest @vitest/ui jsdom @testing-library/react @testing-library/user-event`
-- [ ] Configure Tailwind, ESLint flat config, Vitest
+- [ ] Add dev deps: `tailwindcss @tailwindcss/vite`, `vitest @vitest/ui jsdom @testing-library/react @testing-library/user-event`
+- [ ] Configure Tailwind, Vitest
 - [ ] `WebSocketClient` class
   - [ ] Connect + exponential backoff reconnect (cap 30 s, add jitter)
   - [ ] Ordered message processing: exactly-once delivery, in-sequence application, gap detection
