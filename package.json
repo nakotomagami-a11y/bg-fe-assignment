@@ -1,0 +1,10 @@
+{
+  "name": "bg-fe-assignment",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"pnpm --filter crash-feed-server start\" \"pnpm --filter bg-fe-client dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
