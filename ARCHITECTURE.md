@@ -45,11 +45,10 @@
 
 ### File size
 
-No file should exceed **400 lines**. If it does, split it:
+Components and hooks should not exceed **400 lines**. Utility files can be longer as long as everything in them is cohesive — a long `betFormatting.ts` full of related formatting functions is fine. A long component or hook is a sign it's doing too much. If a component or hook exceeds the limit, split it:
 
 - Logic growing inside a component → extract to `use<Name>.ts`
 - A hook doing two unrelated things → two hooks
-- Utility functions accumulating in a component → `utils/<name>.ts`
 - A store action file getting long → split by domain (round actions, bet actions, connection actions)
 
 ### Naming
