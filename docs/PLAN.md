@@ -64,28 +64,57 @@ See `ARCHITECTURE.md` for the full breakdown — data flow, interfaces, file map
 - [x] `WebSocketClient` class — connect, backoff, seqBuffer routing, clock anchor, health metrics
 - [x] Wire WebSocketClient → store — wsService.ts, ts-pattern exhaustive dispatch, VITE_WS_URL env
 
-### Phase 2 — Live bets table
+### Phase 2 — Design implementation
 
-- [ ] `BetsTable` with TanStack Virtual
-- [ ] Each row: `React.memo`, subscribes to its own bet by id (not the whole Map)
+Design reference: claude.ai/design artifact "Crash Live Board". Dark trading-terminal aesthetic — obsidian base, acid-lime brand, heat-shift curve, Space Grotesk + JetBrains Mono.
+
+**PR 2a — Global styles + layout shell + TopBar**
+- [ ] CSS design tokens (variables, fonts, ambient/grain, scrollbar) into `index.css`
+- [ ] `App.tsx` — 2-col grid shell, ambient + grain overlays, `data-phase` on `<body>`
+- [ ] `TopBar` — brand logo with acid spark, live pill (seq counter), drift pill, round number, balance
+
+**PR 2b — Hero panel (multiplier readout + crash curve)**
+- [ ] `HeroPanel` — card with phase chip, giant multiplier with heat colour, sub-text, countdown progress bar
+- [ ] `CrashCurve` — canvas rAF loop: log-scale grid, heat gradient stroke + fill, pulsing tip, crash burst
+
+**PR 2c — History chips + BetPanel**
+- [ ] `LastRounds` — coloured chips: lo (<1.5×) red · mid (1.5–2×) amber · hi (2–10×) green · huge (≥10×) acid
+- [ ] `BetPanel` — amount input, ½/2×/MAX steppers, quick-amounts (10/25/50/100), action button all states, hint line
+- [ ] Action button states: `bet` / `waiting` / `cashout` / `won` / `lost` / `disabled`
+
+**PR 2d — BetsTable**
+- [ ] `BetsTable` with TanStack Virtual (5,000 rows, only visible mounted)
+- [ ] `BetRow` — `React.memo`, avatar initials, bet amount, cashed multiplier, status badge
+- [ ] `StatusBadge` — active (cyan dot) / pending (amber dot) / cashed (green) / lost (red) / muted
+- [ ] "You" row: acid highlight border, star avatar, pinned appearance
+- [ ] Flash animation on cashout (`flash-green` class, CSS keyframe)
+
+**PR 2e — EventLog**
+- [ ] `EventLog` — terminal-style, seq / event type / arg / note columns
+- [ ] Note variants: default dim · `warn` amber · `drop` red-soft
+- [ ] Slide-in animation on new entries
+
+### Phase 3 — Live bets table wiring
+
+- [ ] Each row subscribes to its own bet by id (not the whole Map)
 - [ ] rAF batch flush: accumulate `bet_updated` events, apply once per animation frame
 - [ ] Round transition: swap to new bets Map atomically, no stutter
 - [ ] Status-change cell highlight via CSS transition + `onTransitionEnd` (no timers)
 
-### Phase 3 — Multiplier ticker
+### Phase 4 — Multiplier ticker
 
 - [ ] Interpolated animation: rAF loop between ticks for smooth 60 fps display
 - [ ] Crash state: freeze value, red styling, show crash multiplier prominently
 - [ ] Last 6 round results as coloured chips — < 2× red, 2–10× yellow, > 10× green
 
-### Phase 4 — Bet panel
+### Phase 5 — Bet panel wiring
 
 - [ ] Place bet: optimistic pending row → confirmed on `bet_accepted` / removed on `bet_rejected`
 - [ ] Cash out button during flight
 - [ ] Handle `cashout_rejected` with `reason: "crashed"` — show "too late", mark lost, never get stuck
 - [ ] Betting countdown: `endsAt` corrected for clock skew, updated every second
 
-### Phase 5 — Connection status bar & dev modal
+### Phase 6 — Connection status bar & dev modal
 
 - [ ] Status badge: `live` / `reconnecting` / `recovering`
 - [ ] Live counters: last seq, clock drift, duplicates dropped, out-of-order fixed, gaps, reconnects
