@@ -15,6 +15,7 @@ export function Input({
   suffix,
   wrapperClassName = '',
   className = '',
+  disabled,
   ...rest
 }: InputProps) {
   return (
@@ -22,6 +23,7 @@ export function Input({
       className={[
         'flex items-center gap-2 px-3 py-2 rounded-lg border border-line-2 bg-panel-2',
         'focus-within:border-acid/40 transition-colors',
+        disabled ? 'opacity-40' : '',
         wrapperClassName,
       ]
         .filter(Boolean)
@@ -33,6 +35,7 @@ export function Input({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
         className={['flex-1 bg-transparent text-sm text-txt outline-none', className]
           .filter(Boolean)
           .join(' ')}

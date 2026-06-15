@@ -89,9 +89,17 @@ function ActiveBetView({
 
 // ─── Bet form ─────────────────────────────────────────────────────────────────
 
-function BetForm({ onPlace }: { onPlace: (amount: number) => void }) {
+type BetFormStatus =
+  | { kind: 'ready' }
+  | { kind: 'pending' }
+  | { kind: 'rejected'; reason: string | null; onDismiss: () => void }
+  | { kind: 'locked'; label: string }
+
+function BetForm({ onPlace, status }: { onPlace: (amount: number) => void; status: BetFormStatus }) {
   const [amount, setAmount] = useState(50)
   const [inputVal, setInputVal] = useState('50.00')
+
+  const disabled = status.kind !== 'ready'
 
   const set = (v: number) => {
     const clamped = clamp(v)
@@ -99,10 +107,35 @@ function BetForm({ onPlace }: { onPlace: (amount: number) => void }) {
     setInputVal(clamped.toFixed(2))
   }
 
+  const actionButton = match(status)
+    .with({ kind: 'ready' }, () => (
+      <Button variant="acid" size="lg" fullWidth onClick={() => onPlace(amount)}>
+        Place bet  ${amount.toFixed(2)}
+      </Button>
+    ))
+    .with({ kind: 'pending' }, () => (
+      <Button variant="ghost" size="lg" fullWidth disabled>
+        <span className="inline-flex items-center gap-2">
+          <span className="size-1.75 rounded-full bg-amber shadow-glow-amber animate-pulse" />
+          Confirming bet…
+        </span>
+      </Button>
+    ))
+    .with({ kind: 'rejected' }, ({ reason, onDismiss }) => (
+      <Button variant="danger" size="lg" fullWidth onClick={onDismiss}>
+        {reason ? `Bet rejected — ${reason.replace(/_/g, ' ')}` : 'Bet rejected — tap to retry'}
+      </Button>
+    ))
+    .with({ kind: 'locked' }, ({ label }) => (
+      <Button variant="ghost" size="lg" fullWidth disabled>
+        {label}
+      </Button>
+    ))
+    .exhaustive()
+
   return (
     <div className="flex flex-col gap-4">
       <Row label="bet amount">
-        {/* Quick presets */}
         <div className="grid grid-cols-4 gap-1.5">
           {PRESETS.map((p) => (
             <Button
@@ -110,14 +143,14 @@ function BetForm({ onPlace }: { onPlace: (amount: number) => void }) {
               variant="ghost"
               size="sm"
               onClick={() => set(p)}
-              className={amount === p ? 'border-acid/50 bg-acid/10 text-acid' : ''}
+              disabled={disabled}
+              className={!disabled && amount === p ? 'border-acid/50 bg-acid/10 text-acid' : ''}
             >
               {p}
             </Button>
           ))}
         </div>
 
-        {/* Amount input with half / double */}
         <div className="flex gap-2">
           <Input
             value={inputVal}
@@ -131,15 +164,14 @@ function BetForm({ onPlace }: { onPlace: (amount: number) => void }) {
             inputMode="decimal"
             wrapperClassName="flex-1"
             className="font-mono tabular-nums"
+            disabled={disabled}
           />
-          <Button variant="ghost" size="md" onClick={() => set(amount / 2)}>½</Button>
-          <Button variant="ghost" size="md" onClick={() => set(amount * 2)}>2×</Button>
+          <Button variant="ghost" size="md" onClick={() => set(amount / 2)} disabled={disabled}>½</Button>
+          <Button variant="ghost" size="md" onClick={() => set(amount * 2)} disabled={disabled}>2×</Button>
         </div>
       </Row>
 
-      <Button variant="acid" size="lg" fullWidth onClick={() => onPlace(amount)}>
-        Place bet  ${amount.toFixed(2)}
-      </Button>
+      {actionButton}
     </div>
   )
 }
@@ -174,11 +206,6 @@ export function BetPanel() {
   const panel = 'rounded-xl border border-line bg-panel'
 
   return match({ phase, bet: playerBet })
-    .with({ phase: P.nullish }, () => (
-      <div className={`${panel} px-5 py-4 flex items-center justify-center`}>
-        <span className="text-xs text-txt-faint">Connecting…</span>
-      </div>
-    ))
     .with({ bet: { status: 'cashed_out', cashedAt: P.number } }, ({ bet }) => (
       <div className={`${panel} px-5 overflow-hidden`}>
         <WonView amount={bet.amount} cashedAt={bet.cashedAt} />
@@ -199,32 +226,24 @@ export function BetPanel() {
         />
       </div>
     ))
-    .with({ phase: P.union('flight', 'crashed', 'pause') }, ({ phase: p }) => (
-      <div className={`${panel} px-5 py-4 flex items-center justify-center`}>
-        <span className="text-xs text-txt-faint">
-          {p === 'flight' ? 'No bet this round' : '—'}
-        </span>
-      </div>
-    ))
-    .with({ bet: { status: 'pending' } }, () => (
-      <div className={`${panel} px-5 py-4 flex items-center justify-center gap-2`}>
-        <span className="size-1.75 rounded-full bg-amber shadow-glow-amber animate-pulse" />
-        <span className="text-xs text-txt-dim">Confirming bet…</span>
-      </div>
-    ))
-    .with({ bet: { status: 'rejected' } }, ({ bet }) => (
-      <div className={`${panel} px-5 py-4 flex flex-col gap-3`}>
-        <span className="text-xs text-red">
-          Bet rejected{bet.rejectReason ? ` — ${bet.rejectReason.replace(/_/g, ' ')}` : ''}
-        </span>
-        <Button variant="danger" size="lg" fullWidth onClick={() => setPlayerBet(null)}>
-          Try again
-        </Button>
-      </div>
-    ))
-    .otherwise(() => (
-      <div className={`${panel} px-5 py-4`}>
-        <BetForm onPlace={placeBet} />
-      </div>
-    ))
+    .otherwise(({ phase: p, bet }) => {
+      const status: BetFormStatus = match({ phase: p, bet })
+        .with({ phase: P.nullish }, () => ({ kind: 'locked' as const, label: 'Connecting…' }))
+        .with({ bet: { status: 'pending' } }, () => ({ kind: 'pending' as const }))
+        .with({ bet: { status: 'rejected' } }, ({ bet: b }) => ({
+          kind: 'rejected' as const,
+          reason: b.rejectReason,
+          onDismiss: () => setPlayerBet(null),
+        }))
+        .with({ phase: 'flight' }, () => ({ kind: 'locked' as const, label: 'Round in flight' }))
+        .with({ phase: 'crashed' }, () => ({ kind: 'locked' as const, label: 'Round over' }))
+        .with({ phase: 'pause' }, () => ({ kind: 'locked' as const, label: 'Next round soon' }))
+        .otherwise(() => ({ kind: 'ready' as const }))
+
+      return (
+        <div className={`${panel} px-5 py-4`}>
+          <BetForm onPlace={placeBet} status={status} />
+        </div>
+      )
+    })
 }

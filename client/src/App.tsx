@@ -1,5 +1,5 @@
 import { useGameStore } from '@/shared/hooks/useGameStore'
-import { TopBar } from '@/modules/connection/components/TopBar'
+import { TopBar } from '@/components'
 import { HeroPanel } from '@/modules/multiplier/components/HeroPanel'
 import { LastRounds } from '@/modules/multiplier/components/LastRounds'
 import { BetPanel } from '@/modules/bet-panel/components/BetPanel'
