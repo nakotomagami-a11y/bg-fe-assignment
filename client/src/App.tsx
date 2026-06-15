@@ -1,5 +1,7 @@
 import { useGameStore } from '@/shared/hooks/useGameStore'
 import { TopBar } from '@/modules/connection/components/TopBar'
+import { HeroPanel } from '@/modules/multiplier/components/HeroPanel'
+import { LastRounds } from '@/modules/multiplier/components/LastRounds'
 
 function AmbientOverlay({ phase }: { phase: string | undefined }) {
   const gradient = phase === 'crashed' ? 'var(--ambient-crashed)' : 'var(--ambient-live)'
@@ -24,8 +26,8 @@ export default function App() {
           style={{ gridTemplateColumns: 'minmax(380px,440px) 1fr' }}
         >
           <div className="min-h-0 flex flex-col gap-4.5">
-            {/* 2b: HeroPanel */}
-            {/* 2c: LastRounds */}
+            <HeroPanel />
+            <LastRounds />
             {/* 2c: BetPanel */}
           </div>
           <div className="min-h-0 flex flex-col gap-4.5">
