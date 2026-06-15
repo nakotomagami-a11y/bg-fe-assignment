@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { match, P } from 'ts-pattern'
 import { useGameStore } from '@/shared/hooks/useGameStore'
 import { wsClient } from '@/ws/wsService'
 
@@ -208,87 +209,60 @@ export function BetPanel() {
     setCashing(true)
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  const panel = 'rounded-xl border border-line bg-panel'
 
-  // Not connected yet
-  if (!phase) {
-    return (
-      <div className="rounded-xl border border-line bg-panel px-5 py-4 flex items-center justify-center">
+  return match({ phase, bet: playerBet })
+    .with({ phase: P.nullish }, () => (
+      <div className={`${panel} px-5 py-4 flex items-center justify-center`}>
         <span className="text-xs text-txt-faint">Connecting…</span>
       </div>
-    )
-  }
-
-  // Result views (after crash)
-  if (playerBet?.status === 'cashed_out' && playerBet.cashedAt != null) {
-    return (
-      <div className="rounded-xl border border-line bg-panel px-5 overflow-hidden">
-        <WonView amount={playerBet.amount} cashedAt={playerBet.cashedAt} />
+    ))
+    .with({ bet: { status: 'cashed_out', cashedAt: P.number } }, ({ bet }) => (
+      <div className={`${panel} px-5 overflow-hidden`}>
+        <WonView amount={bet.amount} cashedAt={bet.cashedAt} />
       </div>
-    )
-  }
-
-  if (playerBet?.status === 'lost') {
-    return (
-      <div className="rounded-xl border border-line bg-panel px-5 overflow-hidden">
-        <LostView amount={playerBet.amount} />
+    ))
+    .with({ bet: { status: 'lost' } }, ({ bet }) => (
+      <div className={`${panel} px-5 overflow-hidden`}>
+        <LostView amount={bet.amount} />
       </div>
-    )
-  }
-
-  // Active bet during flight
-  if (phase === 'flight' && playerBet?.status === 'active') {
-    return (
-      <div className="rounded-xl border border-line bg-panel px-5 py-4">
+    ))
+    .with({ phase: 'flight', bet: { status: 'active' } }, ({ bet }) => (
+      <div className={`${panel} px-5 py-4`}>
         <ActiveBetView
-          amount={playerBet.amount}
+          amount={bet.amount}
           multiplier={multiplier}
           onCashOut={cashOut}
           cashing={cashing}
         />
       </div>
-    )
-  }
-
-  // In flight without a bet (missed betting window)
-  if (phase === 'flight' || phase === 'crashed' || phase === 'pause') {
-    return (
-      <div className="rounded-xl border border-line bg-panel px-5 py-4 flex items-center justify-center">
+    ))
+    .with({ phase: P.union('flight', 'crashed', 'pause') }, ({ phase: p }) => (
+      <div className={`${panel} px-5 py-4 flex items-center justify-center`}>
         <span className="text-xs text-txt-faint">
-          {phase === 'flight' ? 'No bet this round' : '—'}
+          {p === 'flight' ? 'No bet this round' : '—'}
         </span>
       </div>
-    )
-  }
-
-  // Pending confirmation during betting phase
-  if (playerBet?.status === 'pending') {
-    return (
-      <div className="rounded-xl border border-line bg-panel px-5 py-4 flex items-center justify-center gap-2">
+    ))
+    .with({ bet: { status: 'pending' } }, () => (
+      <div className={`${panel} px-5 py-4 flex items-center justify-center gap-2`}>
         <span className="size-1.75 rounded-full bg-amber shadow-glow-amber animate-pulse" />
         <span className="text-xs text-txt-dim">Confirming bet…</span>
       </div>
-    )
-  }
-
-  // Rejected — let user retry
-  if (playerBet?.status === 'rejected') {
-    return (
-      <div className="rounded-xl border border-line bg-panel px-5 py-4 flex flex-col gap-3">
+    ))
+    .with({ bet: { status: 'rejected' } }, ({ bet }) => (
+      <div className={`${panel} px-5 py-4 flex flex-col gap-3`}>
         <span className="text-xs text-red">
-          Bet rejected{playerBet.rejectReason ? ` — ${playerBet.rejectReason.replace(/_/g, ' ')}` : ''}
+          Bet rejected{bet.rejectReason ? ` — ${bet.rejectReason.replace(/_/g, ' ')}` : ''}
         </span>
         <PrimaryBtn variant="red-soft" onClick={() => setPlayerBet(null)}>
           Try again
         </PrimaryBtn>
       </div>
-    )
-  }
-
-  // Default: betting phase, show the form
-  return (
-    <div className="rounded-xl border border-line bg-panel px-5 py-4">
-      <BetForm onPlace={placeBet} />
-    </div>
-  )
+    ))
+    .otherwise(() => (
+      <div className={`${panel} px-5 py-4`}>
+        <BetForm onPlace={placeBet} />
+      </div>
+    ))
 }
