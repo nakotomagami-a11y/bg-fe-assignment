@@ -76,6 +76,7 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
         ? { ...s.round, roundId, phase: 'betting', phaseEndsAt: endsAt }
         : { roundId, phase: 'betting', multiplier: 1, phaseEndsAt: endsAt },
       bets: new Map(),
+      playerBet: null,
     })),
 
   applyRoundStart: (roundId) =>
@@ -96,6 +97,10 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
       lastRounds: s.round
         ? [crashMultiplier, ...s.lastRounds].slice(0, 6)
         : s.lastRounds,
+      // Any active bet that didn't cash out before the crash is now lost.
+      // The server doesn't send individual lost updates — we derive this locally.
+      playerBet:
+        s.playerBet?.status === 'active' ? { ...s.playerBet, status: 'lost' } : s.playerBet,
     })),
 
   applyBetsPlaced: (bets) =>

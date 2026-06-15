@@ -2,6 +2,7 @@ import { useGameStore } from '@/shared/hooks/useGameStore'
 import { TopBar } from '@/modules/connection/components/TopBar'
 import { HeroPanel } from '@/modules/multiplier/components/HeroPanel'
 import { LastRounds } from '@/modules/multiplier/components/LastRounds'
+import { BetPanel } from '@/modules/bet-panel/components/BetPanel'
 
 function AmbientOverlay({ phase }: { phase: string | undefined }) {
   const gradient = phase === 'crashed' ? 'var(--ambient-crashed)' : 'var(--ambient-live)'
@@ -28,7 +29,7 @@ export default function App() {
           <div className="min-h-0 flex flex-col gap-4.5">
             <HeroPanel />
             <LastRounds />
-            {/* 2c: BetPanel */}
+            <BetPanel />
           </div>
           <div className="min-h-0 flex flex-col gap-4.5">
             {/* 2d: BetsTable */}
