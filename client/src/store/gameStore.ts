@@ -73,7 +73,7 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
   applyBettingOpen: (roundId, endsAt) =>
     set((s) => ({
       round: s.round
-        ? { ...s.round, roundId, phase: 'betting', phaseEndsAt: endsAt }
+        ? { ...s.round, roundId, phase: 'betting', multiplier: 1, phaseEndsAt: endsAt }
         : { roundId, phase: 'betting', multiplier: 1, phaseEndsAt: endsAt },
       bets: new Map(),
       playerBet: null,
@@ -82,7 +82,7 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
   applyRoundStart: (roundId) =>
     set((s) => ({
       round: s.round
-        ? { ...s.round, roundId, phase: 'flight', phaseEndsAt: null }
+        ? { ...s.round, roundId, phase: 'flight', multiplier: 1, phaseEndsAt: null }
         : { roundId, phase: 'flight', multiplier: 1, phaseEndsAt: null },
     })),
 

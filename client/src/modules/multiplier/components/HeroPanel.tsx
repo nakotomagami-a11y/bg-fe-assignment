@@ -81,9 +81,9 @@ export function HeroPanel() {
         )}
       </div>
 
-      {/* Multiplier / countdown */}
+      {/* Multiplier / countdown — fixed height prevents layout shift on phase change */}
       <div
-        className="flex items-center justify-center py-6"
+        className="flex items-center justify-center py-6 min-h-35"
         style={{ filter: isLive ? 'drop-shadow(0 0 24px var(--acid))' : undefined }}
       >
         {isBetting && endsAt != null ? (
@@ -96,8 +96,10 @@ export function HeroPanel() {
         )}
       </div>
 
-      {/* Crash curve — visible during flight and after crash */}
-      {(isLive || isCrashed) && <CrashCurve currentMultiplier={value} />}
+      {/* Curve area — space always reserved to keep panel height constant */}
+      <div className="h-35">
+        {(isLive || isCrashed) && <CrashCurve currentMultiplier={value} />}
+      </div>
 
     </div>
   )
