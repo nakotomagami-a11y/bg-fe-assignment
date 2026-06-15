@@ -24,6 +24,10 @@
 |---|----------|--------|
 | 1 | `WebSocketClient` is a plain class, not a hook or component | React lifecycle would reconnect on every re-render. Class lives for the app lifetime. |
 | 2 | ts-pattern `.exhaustive()` on WS message handler | Compile error if a known message type goes unhandled. Unknown types from the server log and continue — no crash. |
+| 3 | `bets` stored as `Map<id, ClientBet>`, not array | O(1) lookup per `bet_updated`. 200 updates/s × O(n) scan = measurable cost at 5,000 bets. |
+| 4 | `round_crash` "lost" is computed at render time, not stored | `round_crash` updates `round.phase` to `'crashed'` only. A bet renders as lost when `phase === 'crashed' && bet.status === 'active'`. Zero iteration, zero mass-update, always consistent. `ClientBetStatus` has no `'lost'` value. |
+| 5 | Replies bypass the seq buffer entirely | `bet_accepted`, `bet_rejected`, `cashout_accepted`, `cashout_rejected` share `seq` with feed messages by design — routing them through the buffer would drop legitimate feed messages. Replies dispatched directly by `clientBetId` / `betId`. |
+| 6 | String literal unions, not enums | Server sends plain strings. Enums add a runtime object and require mapping on the way in. ts-pattern works best with string literal unions. No `enum` anywhere in the codebase. |
 
 ---
 
@@ -76,6 +80,7 @@ Components and hooks should not exceed **400 lines**. Utility files can be longe
 │    • exponential backoff reconnect                         │
 │    • ordered, exactly-once message processing              │
 │    • full state sync on (re)connect via snapshot           │
+│    • clock anchor: lastServerTime + elapsed local time     │
 │    • calls store actions directly                          │
 └──────────────────────┬────────────────────────────────────┘
                        │ store actions
@@ -89,6 +94,54 @@ Components and hooks should not exceed **400 lines**. Utility files can be longe
    ▼          ▼               ▼              ▼
 BetsTable  MultiplierTicker  ConnectionBar  BetPanel
 ```
+
+---
+
+## WS message pipeline
+
+```
+WS frame arrives
+  → parse JSON
+  → ts-pattern match on msg.type
+
+      snapshot
+        → discard buffer entries with seq ≤ snapshot.seq
+        → replay buffered entries with seq > snapshot.seq in order
+        → apply snapshot as ground truth
+
+      feed messages (betting_open, bets_placed, round_start,
+                     multiplier_tick, bet_updated, round_crash)
+        → seq buffer:
+            already seen seq?  → drop, duplicatesDropped++
+            gap (seq skipped)? → hold, gapsDetected++
+            out of order?      → hold in sorted buffer, outOfOrderFixed++
+            next in seq?       → process, drain buffer
+
+      replies (bet_accepted, bet_rejected, cashout_accepted, cashout_rejected)
+        → bypass seq buffer entirely (decision #5)
+        → dispatch directly by clientBetId / betId
+
+      unknown type
+        → log to anomalyLog, continue (decision #2 — don't crash)
+```
+
+### Exponential backoff
+
+When the connection drops, we wait before trying to reconnect. The delay starts at 1s and doubles each time — 1s, 2s, 4s, 8s, 16s — then caps at 30s. A small random amount is added to each delay (jitter) so that if many clients drop at the same time, they don't all hammer the server at the exact same moment.
+
+### Snapshot reconciliation
+
+Every time we connect (or reconnect) the server immediately sends a full snapshot of the current round state. Any messages we had buffered while waiting to reconnect that are older than the snapshot are now stale and get thrown away — the snapshot already has that information baked in. From there we pick up fresh.
+
+### Clock skew
+
+`endsAt` (when betting closes) is in server time. Rather than estimating an absolute offset between clocks, we anchor to the most recent message:
+
+```
+timeLeft = endsAt - (lastServerTime + (Date.now() - lastLocalTime))
+```
+
+`lastServerTime` and `lastLocalTime` are saved from the last received message. The bracketed part is our best estimate of what the server clock reads right now — the server time we last saw, plus however much local time has passed since. Error is limited to the network latency of that one message, which is negligible for a second-level countdown. On reconnect the snapshot provides a fresh `endsAt` to anchor from.
 
 ---
 
@@ -135,7 +188,7 @@ src/
   ws/
     WebSocketClient.ts         — connect, reconnect, message dispatch, store calls
     seqBuffer.ts               — ordered, exactly-once delivery (pure, unit tested)
-    clockSkew.ts               — server/client time offset estimator (pure, unit tested)
+    clockSkew.ts               — last-message time anchor for countdown (pure, unit tested)
 
   store/
     gameStore.ts               — Zustand store + all action handlers
