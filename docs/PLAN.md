@@ -55,23 +55,19 @@ See `ARCHITECTURE.md` for the full breakdown — data flow, interfaces, file map
 - [x] pnpm monorepo with `client` and `server` workspaces — `pnpm dev` at root boots both
 - [x] Vite + React 19 + TypeScript strict scaffold in `client/`
 - [x] `@/*` and `@server/*` tsconfig + Vite path aliases wired up
-- [ ] Add deps: `zustand`, `@tanstack/react-virtual`, `ts-pattern`
-- [ ] Add dev deps: `tailwindcss @tailwindcss/vite`, `vitest @vitest/ui jsdom @testing-library/react @testing-library/user-event`
-- [ ] Configure Tailwind, Vitest
+- [x] Add deps: `zustand`, `@tanstack/react-virtual`, `ts-pattern`
+- [x] Add dev deps: `tailwindcss @tailwindcss/vite`, `vitest @vitest/ui jsdom @testing-library/react @testing-library/user-event`
+- [x] Configure Tailwind, Vitest
+- [x] `seqBuffer.ts` — ordered, exactly-once delivery (pure, tested)
+- [x] `clockSkew.ts` — last-message time anchor for countdown (pure, tested)
 - [ ] `WebSocketClient` class
   - [ ] Connect + exponential backoff reconnect (cap 30 s, add jitter)
-  - [ ] Ordered message processing: exactly-once delivery, in-sequence application, gap detection
+  - [ ] Ordered message processing via seqBuffer
   - [ ] Full state sync on (re)connect: snapshot is authoritative, superseded buffered messages discarded
-  - [ ] Clock skew estimator: EWMA of `serverTime - Date.now()` (α = 0.1)
-  - [ ] Track connection health metrics (deduplication events, reordering events, gaps, reconnects)
-- [ ] Zustand store skeleton (see `ARCHITECTURE.md` — Key interfaces)
-- [ ] Wire client → store
-- [ ] **Tests** (WS engine is highest-value test target)
-  - [ ] Exactly-once delivery: duplicate messages are identified and skipped
-  - [ ] Out-of-sequence messages are buffered and applied in order once the gap fills
-  - [ ] State sync supersedes buffered messages: stale entries discarded on reconnect
-  - [ ] Clock skew estimate converges correctly
-  - [ ] Reconnect delays follow exponential backoff sequence
+  - [ ] Clock anchor updated on every message
+  - [ ] Track connection health metrics (duplicates, out-of-order, gaps, reconnects)
+- [ ] Zustand store skeleton
+- [ ] Wire WebSocketClient → store
 
 ### Phase 2 — Live bets table
 
