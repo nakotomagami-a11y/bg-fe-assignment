@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { match, P } from 'ts-pattern'
 import { useGameStore } from '@/shared/hooks/useGameStore'
 import { wsClient } from '@/ws/wsService'
+import { Button, Input } from '@/components'
 
 const MIN = 1
 const MAX = 500
@@ -14,7 +15,7 @@ function clamp(v: number) {
   return Math.max(MIN, Math.min(MAX, Math.round(v * 100) / 100))
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Layout helpers ───────────────────────────────────────────────────────────
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -25,41 +26,15 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-function PrimaryBtn({
-  onClick,
-  disabled,
-  children,
-  variant = 'acid',
-}: {
-  onClick: () => void
-  disabled?: boolean
-  children: React.ReactNode
-  variant?: 'acid' | 'green' | 'red-soft'
-}) {
-  const base = 'w-full py-3 rounded-lg font-bold text-sm tracking-wide transition-opacity'
-  const colors = {
-    acid: 'bg-acid text-bg',
-    green: 'bg-green/15 text-green border border-green/30',
-    'red-soft': 'bg-red/10 text-red border border-red/25',
-  }
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`${base} ${colors[variant]} ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:opacity-90 active:opacity-75'}`}
-    >
-      {children}
-    </button>
-  )
-}
-
 // ─── Result views ─────────────────────────────────────────────────────────────
 
 function WonView({ amount, cashedAt }: { amount: number; cashedAt: number }) {
   const payout = amount * cashedAt
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-6">
-      <span className="text-label tracking-allcaps uppercase text-green">cashed out at {cashedAt.toFixed(2)}×</span>
+      <span className="text-label tracking-allcaps uppercase text-green">
+        cashed out at {cashedAt.toFixed(2)}×
+      </span>
       <span className="font-mono font-bold text-4xl text-green tabular-nums">
         +${payout.toFixed(2)}
       </span>
@@ -105,9 +80,9 @@ function ActiveBetView({
           </span>
         </div>
       </div>
-      <PrimaryBtn variant="green" onClick={onCashOut} disabled={cashing}>
+      <Button variant="green" size="lg" fullWidth onClick={onCashOut} disabled={cashing}>
         {cashing ? 'Cashing out…' : `Cash out  ${multiplier.toFixed(2)}×`}
-      </PrimaryBtn>
+      </Button>
     </div>
   )
 }
@@ -130,53 +105,41 @@ function BetForm({ onPlace }: { onPlace: (amount: number) => void }) {
         {/* Quick presets */}
         <div className="grid grid-cols-4 gap-1.5">
           {PRESETS.map((p) => (
-            <button
+            <Button
               key={p}
+              variant="ghost"
+              size="sm"
               onClick={() => set(p)}
-              className={`py-1.5 rounded-lg text-xs font-mono font-medium border transition-colors ${
-                amount === p
-                  ? 'border-acid/50 bg-acid/10 text-acid'
-                  : 'border-line-2 text-txt-dim hover:border-acid/30 hover:text-txt'
-              }`}
+              className={amount === p ? 'border-acid/50 bg-acid/10 text-acid' : ''}
             >
               {p}
-            </button>
+            </Button>
           ))}
         </div>
 
         {/* Amount input with half / double */}
         <div className="flex gap-2">
-          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border border-line-2 bg-panel-2 focus-within:border-acid/40 transition-colors">
-            <span className="text-txt-faint text-sm font-medium">$</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={inputVal}
-              onChange={(e) => setInputVal(e.target.value)}
-              onBlur={() => {
-                const n = parseFloat(inputVal)
-                if (!isNaN(n)) set(n)
-                else setInputVal(amount.toFixed(2))
-              }}
-              className="flex-1 bg-transparent font-mono text-sm text-txt outline-none tabular-nums"
-            />
-          </div>
-          <button
-            onClick={() => set(amount / 2)}
-            className="px-3 py-2 rounded-lg border border-line-2 text-xs text-txt-dim font-medium hover:border-line hover:text-txt transition-colors"
-          >
-            ½
-          </button>
-          <button
-            onClick={() => set(amount * 2)}
-            className="px-3 py-2 rounded-lg border border-line-2 text-xs text-txt-dim font-medium hover:border-line hover:text-txt transition-colors"
-          >
-            2×
-          </button>
+          <Input
+            value={inputVal}
+            onChange={setInputVal}
+            onBlur={() => {
+              const n = parseFloat(inputVal)
+              if (!isNaN(n)) set(n)
+              else setInputVal(amount.toFixed(2))
+            }}
+            prefix="$"
+            inputMode="decimal"
+            wrapperClassName="flex-1"
+            className="font-mono tabular-nums"
+          />
+          <Button variant="ghost" size="md" onClick={() => set(amount / 2)}>½</Button>
+          <Button variant="ghost" size="md" onClick={() => set(amount * 2)}>2×</Button>
         </div>
       </Row>
 
-      <PrimaryBtn onClick={() => onPlace(amount)}>Place bet  ${amount.toFixed(2)}</PrimaryBtn>
+      <Button variant="acid" size="lg" fullWidth onClick={() => onPlace(amount)}>
+        Place bet  ${amount.toFixed(2)}
+      </Button>
     </div>
   )
 }
@@ -191,7 +154,6 @@ export function BetPanel() {
 
   const [cashing, setCashing] = useState(false)
 
-  // Clear loading state when a cashout response arrives
   useEffect(() => {
     if (playerBet?.status !== 'active') setCashing(false)
   }, [playerBet?.status])
@@ -255,9 +217,9 @@ export function BetPanel() {
         <span className="text-xs text-red">
           Bet rejected{bet.rejectReason ? ` — ${bet.rejectReason.replace(/_/g, ' ')}` : ''}
         </span>
-        <PrimaryBtn variant="red-soft" onClick={() => setPlayerBet(null)}>
+        <Button variant="danger" size="lg" fullWidth onClick={() => setPlayerBet(null)}>
           Try again
-        </PrimaryBtn>
+        </Button>
       </div>
     ))
     .otherwise(() => (
