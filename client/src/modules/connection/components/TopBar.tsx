@@ -5,42 +5,42 @@ export function TopBar() {
   const stats = useGameStore((s) => s.stats)
 
   return (
-    <header className="flex items-center gap-4.5 px-6.5 py-4 border-b border-[var(--line)] bg-gradient-to-b from-white/[0.025] to-transparent">
+    <header className="flex items-center gap-4.5 px-6.5 py-4 border-b border-line bg-linear-to-b from-white/2.5 to-transparent">
 
       {/* Brand */}
       <div className="flex items-baseline gap-2.5 mr-1.5">
-        <span className="font-bold tracking-[-0.04em] text-[22px] flex items-center gap-[9px]">
-          <span className="w-[13px] h-[13px] rounded-[3px] rotate-45 bg-[var(--acid)] shadow-[0_0_18px_var(--acid)] shrink-0" />
+        <span className="font-bold tracking-brand text-brand flex items-center gap-2.25">
+          <span className="size-3.25 rounded shrink-0 rotate-45 bg-acid shadow-glow-acid" />
           CRASH
         </span>
-        <span className="text-[11px] text-[var(--txt-faint)] tracking-[0.22em] uppercase font-medium">
+        <span className="text-label text-txt-faint tracking-allcaps uppercase font-medium">
           live board
         </span>
       </div>
 
       {/* Live seq */}
-      <span className="inline-flex items-center gap-2 px-[13px] py-[7px] rounded-full text-[12.5px] font-medium border border-[var(--line-2)] text-[var(--txt-dim)] bg-white/[0.018]">
-        <span className="w-[7px] h-[7px] rounded-full shrink-0 bg-[var(--green)] shadow-[0_0_10px_var(--green)] animate-pulse" />
+      <span className="inline-flex items-center gap-2 px-3.25 py-1.75 rounded-full text-xs font-medium border border-line-2 text-txt-dim bg-white/[0.018]">
+        <span className="size-1.75 rounded-full shrink-0 bg-green shadow-glow-green animate-pulse" />
         live · seq{' '}
-        <b className="font-mono text-[var(--txt)]">{stats.lastSeq.toLocaleString()}</b>
+        <b className="font-mono text-txt">{stats.lastSeq.toLocaleString()}</b>
       </span>
 
       {/* Round */}
-      <span className="inline-flex items-center gap-2 px-[13px] py-[7px] rounded-full text-[12.5px] font-medium border border-[var(--line-2)] text-[var(--txt-dim)] bg-white/[0.018]">
-        <span className="w-[7px] h-[7px] rounded-full shrink-0 bg-[var(--cyan)] shadow-[0_0_10px_var(--cyan)]" />
+      <span className="inline-flex items-center gap-2 px-3.25 py-1.75 rounded-full text-xs font-medium border border-line-2 text-txt-dim bg-white/[0.018]">
+        <span className="size-1.75 rounded-full shrink-0 bg-cyan shadow-glow-cyan" />
         round{' '}
-        <b className="text-[var(--txt)]">{round ? `#${round.roundId.toLocaleString()}` : '—'}</b>
+        <b className="text-txt">{round ? `#${round.roundId.toLocaleString()}` : '—'}</b>
       </span>
 
       <div className="flex-1" />
 
       {/* Balance */}
-      <div className="flex flex-col items-end leading-[1.05]">
-        <span className="text-[10.5px] tracking-[0.2em] uppercase text-[var(--txt-faint)]">
+      <div className="flex flex-col items-end leading-price">
+        <span className="text-label tracking-allcaps uppercase text-txt-faint">
           balance
         </span>
-        <span className="text-[21px] font-semibold tracking-[-0.01em] font-mono tabular-nums">
-          <span className="text-[var(--acid)] text-[13px] mr-[3px] font-medium">$</span>
+        <span className="text-xl font-semibold tracking-price font-mono tabular-nums">
+          <span className="text-acid text-currency mr-0.75 font-medium">$</span>
           1,000.00
         </span>
       </div>

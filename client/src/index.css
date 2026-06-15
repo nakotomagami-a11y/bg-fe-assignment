@@ -4,9 +4,45 @@
 @theme {
   --font-sans: "Space Grotesk", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-panel-3: var(--panel-3);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-txt: var(--txt);
+  --color-txt-dim: var(--txt-dim);
+  --color-txt-faint: var(--txt-faint);
+  --color-acid: var(--acid);
+  --color-green: var(--green);
+  --color-red: var(--red);
+  --color-amber: var(--amber);
+  --color-cyan: var(--cyan);
+  --color-violet: var(--violet);
+
+  --text-brand: 22px;
+  --text-label: 11px;
+  --text-currency: 13px;
+
+  --tracking-brand: -0.04em;
+  --tracking-allcaps: 0.2em;
+  --tracking-price: -0.01em;
+
+  --leading-price: 1.05;
+
+  --shadow-glow-acid: 0 0 18px var(--acid);
+  --shadow-glow-green: 0 0 10px var(--green);
+  --shadow-glow-cyan: 0 0 10px var(--cyan);
 }
 
 :root {
+  --ambient-live:
+    radial-gradient(1100px 700px at 26% 12%, color-mix(in srgb, var(--green) 12%, transparent), transparent 60%),
+    radial-gradient(900px 700px at 88% 90%, color-mix(in srgb, var(--violet) 10%, transparent), transparent 60%);
+  --ambient-crashed:
+    radial-gradient(1200px 800px at 30% 20%, color-mix(in srgb, var(--red) 20%, transparent), transparent 60%);
+
   --bg: #06070c;
   --panel: #0d0f18;
   --panel-2: #11131f;
@@ -34,4 +70,14 @@ body {
   color: var(--txt);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: url('/grain.svg');
+  opacity: 0.04;
 }
