@@ -60,14 +60,9 @@ See `ARCHITECTURE.md` for the full breakdown — data flow, interfaces, file map
 - [x] Configure Tailwind, Vitest
 - [x] `seqBuffer.ts` — ordered, exactly-once delivery (pure, tested)
 - [x] `clockSkew.ts` — last-message time anchor for countdown (pure, tested)
-- [ ] `WebSocketClient` class
-  - [ ] Connect + exponential backoff reconnect (cap 30 s, add jitter)
-  - [ ] Ordered message processing via seqBuffer
-  - [ ] Full state sync on (re)connect: snapshot is authoritative, superseded buffered messages discarded
-  - [ ] Clock anchor updated on every message
-  - [ ] Track connection health metrics (duplicates, out-of-order, gaps, reconnects)
-- [ ] Zustand store skeleton
-- [ ] Wire WebSocketClient → store
+- [x] Zustand store skeleton — types, actions, anomaly ring
+- [x] `WebSocketClient` class — connect, backoff, seqBuffer routing, clock anchor, health metrics
+- [x] Wire WebSocketClient → store — wsService.ts, ts-pattern exhaustive dispatch, VITE_WS_URL env
 
 ### Phase 2 — Live bets table
 
