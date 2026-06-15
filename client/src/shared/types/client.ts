@@ -22,7 +22,7 @@ export type ConnectionPhase = 'connecting' | 'live' | 'reconnecting' | 'recoveri
 
 export type AnomalyEntry = {
   at: number
-  kind: 'duplicate' | 'out_of_order' | 'gap' | 'reconnect' | 'snapshot_reset'
+  kind: 'duplicate' | 'out_of_order' | 'gap' | 'reconnect' | 'snapshot_reset' | 'server_error'
   detail: string
 }
 
