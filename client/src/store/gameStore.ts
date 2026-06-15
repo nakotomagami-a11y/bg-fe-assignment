@@ -129,6 +129,12 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
 
   incrementStats: (patch) =>
     set((s) => ({
-      stats: { ...s.stats, ...patch },
+      stats: {
+        lastSeq: patch.lastSeq ?? s.stats.lastSeq,
+        duplicatesDropped: s.stats.duplicatesDropped + (patch.duplicatesDropped ?? 0),
+        outOfOrderFixed: s.stats.outOfOrderFixed + (patch.outOfOrderFixed ?? 0),
+        gapsDetected: s.stats.gapsDetected + (patch.gapsDetected ?? 0),
+        reconnects: s.stats.reconnects + (patch.reconnects ?? 0),
+      },
     })),
 }))
