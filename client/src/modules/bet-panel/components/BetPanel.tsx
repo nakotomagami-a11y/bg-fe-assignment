@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode, type ButtonHTMLAttributes } from 'react'
 import { cn } from '@/shared/utils/cn'
 import { match, P } from 'ts-pattern'
 import { useGameStore } from '@/shared/hooks/useGameStore'
@@ -27,6 +27,29 @@ type BetFormStatus =
   | { kind: 'won'; cashedAt: number; payout: number }
   | { kind: 'lost'; crashAt: number; betAmount: number }
   | { kind: 'locked'; label: string; sub?: string }
+
+function ActionButton({
+  children,
+  className,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      className={cn(
+        'mt-3.5 w-full rounded-[14px] py-[18px] px-5 text-[18px] font-semibold leading-none',
+        'flex items-center justify-center gap-2.5 transition-transform border-0',
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Sub({ children }: { children: ReactNode }) {
+  return <small className="font-mono font-medium opacity-70 text-sm">{children}</small>
+}
 
 // ─── BetForm ─────────────────────────────────────────────────────────────────
 
@@ -89,94 +112,79 @@ function BetForm({
       text: 'settling round · provably fair',
     }))
 
-  // ─── Shared button shell ──────────────────────────────────────────────────────
-
-  const btnBase =
-    'mt-3.5 w-full rounded-[14px] py-[18px] px-5 text-[18px] font-semibold leading-none flex items-center justify-center gap-2.5 transition-transform border-0'
-  const btnSub = 'font-mono font-medium opacity-70 text-sm'
-
-  // ─── Action button ────────────────────────────────────────────────────────────
-
   const actionBtn = match(status)
     .with({ kind: 'ready' }, () => (
-      <button
+      <ActionButton
         onClick={() => onPlace(amount)}
-        className={`${btnBase} text-[#0a0c12] cursor-pointer hover:-translate-y-px active:translate-y-px`}
+        className="text-[#0a0c12] cursor-pointer hover:-translate-y-px active:translate-y-px"
         style={{
           background: 'linear-gradient(180deg,var(--acid),#a9e818)',
           boxShadow: '0 0 30px rgba(198,255,53,.35)',
         }}
       >
         Bet next round
-        {countdown && <small className={btnSub}>· {countdown}</small>}
-      </button>
+        {countdown && <Sub>· {countdown}</Sub>}
+      </ActionButton>
     ))
     .with({ kind: 'pending' }, () => (
-      <button disabled className={`${btnBase} bg-white/6 text-txt-dim cursor-default`}>
+      <ActionButton disabled className="bg-white/6 text-txt-dim cursor-default">
         <span className="size-1.75 rounded-full bg-amber shadow-glow-amber animate-pulse shrink-0" />
         Confirming bet…
-      </button>
+      </ActionButton>
     ))
     .with({ kind: 'waiting' }, () => (
-      <button disabled className={`${btnBase} bg-white/6 text-txt-dim cursor-default`}>
+      <ActionButton disabled className="bg-white/6 text-txt-dim cursor-default">
         Bet locked
-        {countdown && <small className={btnSub}>· take-off in {countdown}</small>}
-      </button>
+        {countdown && <Sub>· take-off in {countdown}</Sub>}
+      </ActionButton>
     ))
     .with({ kind: 'rejected' }, ({ reason, onDismiss }) => (
-      <button
+      <ActionButton
         onClick={onDismiss}
-        className={`${btnBase} cursor-pointer border border-red/30`}
+        className="cursor-pointer border border-red/30"
         style={{ background: 'rgba(255,58,85,.14)', color: 'var(--red-soft)' }}
       >
         {reason ? `Bet rejected — ${reason.replace(/_/g, ' ')}` : 'Bet rejected — tap to retry'}
-      </button>
+      </ActionButton>
     ))
     .with({ kind: 'cashout' }, ({ amount: a, multiplier: m, cashing }) => (
-      <button
+      <ActionButton
         onClick={onCashOut}
         disabled={cashing}
-        className={`${btnBase} text-[#04140b] cursor-pointer hover:-translate-y-px active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed`}
+        className="text-[#04140b] cursor-pointer hover:-translate-y-px active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed"
         style={{
           background: 'linear-gradient(180deg,var(--green),#13b863)',
           boxShadow: '0 0 34px rgba(31,224,122,.45)',
         }}
       >
-        {cashing ? (
-          'Cashing out…'
-        ) : (
-          <>
-            Cash out
-            <small className={btnSub}>· ${a.toFixed(2)} → ${(a * m).toFixed(2)}</small>
-          </>
+        {cashing ? 'Cashing out…' : (
+          <>Cash out<Sub>· ${a.toFixed(2)} → ${(a * m).toFixed(2)}</Sub></>
         )}
-      </button>
+      </ActionButton>
     ))
     .with({ kind: 'won' }, ({ cashedAt, payout }) => (
-      <button
+      <ActionButton
         disabled
-        className={`${btnBase} cursor-default border border-green/30`}
+        className="cursor-default border border-green/30"
         style={{ background: 'rgba(31,224,122,.14)', color: 'var(--green-2)' }}
       >
-        Cashed @ {cashedAt.toFixed(2)}×
-        <small className={btnSub}>· +${payout.toFixed(2)}</small>
-      </button>
+        Cashed @ {cashedAt.toFixed(2)}×<Sub>· +${payout.toFixed(2)}</Sub>
+      </ActionButton>
     ))
     .with({ kind: 'lost' }, ({ crashAt, betAmount }) => (
-      <button
+      <ActionButton
         disabled
-        className={`${btnBase} cursor-default border border-red/30`}
+        className="cursor-default border border-red/30"
         style={{ background: 'rgba(255,58,85,.14)', color: 'var(--red-soft)' }}
       >
-        Busted @ {crashAt.toFixed(2)}×
-        <small className={btnSub}>· −${betAmount.toFixed(2)}</small>
-      </button>
+        Busted @ {crashAt.toFixed(2)}×<Sub>· −${betAmount.toFixed(2)}</Sub>
+      </ActionButton>
     ))
     .with({ kind: 'locked' }, ({ label, sub }) => (
-      <button disabled className={`${btnBase} bg-white/4 text-txt-faint cursor-default`}>
+      <ActionButton disabled className="bg-white/4 text-txt-faint cursor-default">
         {label}
-        {sub && <small className={btnSub}>· {sub}</small>}
-      </button>
+        {sub && <Sub>· {sub}</Sub>}
+      </ActionButton>
     ))
     .exhaustive()
 
