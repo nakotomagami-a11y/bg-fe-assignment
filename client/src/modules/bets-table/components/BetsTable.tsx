@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { useGameStore } from '@/shared/hooks/useGameStore'
+import { useGameStore } from '@/store/gameStore'
 import { useVirtualList } from '../hooks/useVirtualList'
 import { BetRow } from './BetRow'
 

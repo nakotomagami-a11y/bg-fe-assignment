@@ -1,5 +1,5 @@
-import type { AnyServerMessage, ClientCommand } from '@/shared/types/server'
-import type { ConnectionPhase, WsStats, AnomalyEntry } from '@/shared/types/client'
+import type { AnyServerMessage, ClientCommand } from '@server/protocol/protocol'
+import type { ConnectionPhase, WsStats, AnomalyEntry } from '@/lib/types/client'
 import { createBuffer, feed, reset, type SeqBufferState } from './seqBuffer'
 import { createAnchor, type TimeAnchor } from './clockSkew'
 

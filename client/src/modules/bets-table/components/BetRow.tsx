@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { match, P } from 'ts-pattern'
-import { cn } from '@/shared/utils/cn'
-import { useGameStore } from '@/shared/hooks/useGameStore'
+import { cn } from '@/lib/utils/cn'
+import { useGameStore } from '@/store/gameStore'
 
 const FLASH_MS = 650
 const recent = (ts: number | undefined): boolean =>

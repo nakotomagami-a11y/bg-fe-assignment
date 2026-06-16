@@ -5,6 +5,8 @@
   --font-sans: "Space Grotesk", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
+  --spacing-topbar-offset: calc(var(--topbar-h) + 18px);
+
   --color-bg: var(--bg);
   --color-panel: var(--panel);
   --color-panel-2: var(--panel-2);
@@ -38,6 +40,7 @@
 }
 
 :root {
+  --topbar-h: 65px;
   --ambient-live:
     radial-gradient(ellipse 80% 60% at 30% 15%, color-mix(in srgb, var(--green) 12%, transparent), transparent 60%),
     radial-gradient(ellipse 70% 60% at 75% 90%, color-mix(in srgb, var(--violet) 10%, transparent), transparent 60%);
@@ -64,7 +67,16 @@
   --shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.8);
 }
 
-html, body, #root { height: 100%; }
+html, body, #root { min-height: 100%; }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.14) transparent;
+}
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); }
 
 @keyframes flash-green {
   from { background-color: rgba(31, 224, 122, 0.22); }
@@ -79,7 +91,7 @@ body {
   background: var(--bg);
   color: var(--txt);
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
+  overflow-x: clip;
 }
 
 body::before {

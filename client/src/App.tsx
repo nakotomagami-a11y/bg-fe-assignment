@@ -1,4 +1,4 @@
-import { useGameStore } from '@/shared/hooks/useGameStore'
+import { useGameStore } from '@/store/gameStore'
 import { TopBar } from '@/components/TopBar'
 import { HeroPanel } from '@/modules/multiplier/components/HeroPanel'
 import { LastRounds } from '@/modules/multiplier/components/LastRounds'
@@ -20,19 +20,31 @@ export default function App() {
   return (
     <>
       <AmbientOverlay />
-      <div className="relative z-2 w-full h-full flex flex-col">
-        <TopBar />
-        <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
-          <div className="flex flex-col gap-4.5 px-6.5 pt-4.5 pb-5.5 lg:flex-row lg:h-full">
-            <div className="flex flex-col gap-4.5 lg:w-[460px] lg:shrink-0">
-              <HeroPanel />
-              <LastRounds />
-              <BetPanel />
-            </div>
-            <div className="h-[60vh] flex flex-col lg:h-auto lg:flex-1 lg:min-w-0">
-              <BetsTable />
-            </div>
+      <div className="relative z-2 w-full flex flex-col">
+        {/* Sticky topbar — gives the fixed right panel a stable reference point */}
+        <div className="sticky top-0 z-20">
+          <TopBar />
+        </div>
+
+        <div className="flex flex-col gap-4.5 px-6.5 pt-4.5 pb-50 lg:flex-row">
+          {/* Left: normal page flow */}
+          <div className="flex flex-col gap-4.5 lg:w-115 lg:shrink-0">
+            <HeroPanel />
+            <LastRounds />
+            <BetPanel />
           </div>
+
+          {/* Mobile: BetsTable inline after left content */}
+          <div className="h-[60vh] flex flex-col lg:hidden">
+            <BetsTable />
+          </div>
+        </div>
+
+        {/* Desktop: BetsTable fixed to the right, always in viewport */}
+        <div
+          className="hidden lg:flex fixed top-topbar-offset right-6.5 bottom-4.5 left-126 flex-col z-10"
+        >
+          <BetsTable />
         </div>
       </div>
     </>

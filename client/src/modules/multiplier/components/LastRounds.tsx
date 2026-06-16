@@ -1,4 +1,4 @@
-import { useGameStore } from '@/shared/hooks/useGameStore'
+import { useGameStore } from '@/store/gameStore'
 
 function MultiplierChip({ value }: { value: number }) {
   const isHigh = value >= 10

@@ -1,8 +1,12 @@
-import { useLayoutEffect, useEffect, useRef } from 'react'
-import { useGameStore } from '@/shared/hooks/useGameStore'
-import type { Phase } from '@/shared/types/server'
+import { useLayoutEffect, useRef } from 'react'
+import { useGameStore } from '@/store/gameStore'
+import type { Phase } from '@server/protocol/protocol'
 
 type Point = { t: number; m: number }
+
+// Must match server simulation constants
+const GROWTH = 0.06
+const TICK_MS = 50
 
 // Fixed internal resolution — 2× for sharp rendering on standard + HiDPI displays
 const CW = 880
@@ -170,12 +174,25 @@ export function CrashCurve({ currentMultiplier }: { currentMultiplier: number })
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const historyRef = useRef<Point[]>([])
 
-  useEffect(() => {
+  // useLayoutEffect (not useEffect) so history is populated before the draw below runs
+  useLayoutEffect(() => {
     if (phase === 'betting') {
       historyRef.current = []
       return
     }
     if (phase === 'flight' || phase === 'crashed') {
+      // Page was reloaded mid-flight: synthesize the missing history using
+      // the server formula m = exp(GROWTH * tick / 20) so the curve looks correct.
+      if (historyRef.current.length === 0 && serverMultiplier > 1.01) {
+        const currentTick = Math.round(Math.log(serverMultiplier) * 20 / GROWTH)
+        const flightStart = performance.now() - currentTick * TICK_MS
+        const step = Math.max(1, Math.floor(currentTick / 50))
+        const synthetic: Point[] = []
+        for (let tick = 0; tick < currentTick; tick += step) {
+          synthetic.push({ t: flightStart + tick * TICK_MS, m: Math.exp((GROWTH * tick) / 20) })
+        }
+        historyRef.current = synthetic
+      }
       historyRef.current = [...historyRef.current, { t: performance.now(), m: serverMultiplier }]
     }
   }, [serverMultiplier, phase])

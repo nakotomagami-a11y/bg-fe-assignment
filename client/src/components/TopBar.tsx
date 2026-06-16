@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { match } from 'ts-pattern'
-import { useGameStore } from '@/shared/hooks/useGameStore'
+import { useGameStore } from '@/store/gameStore'
 import { DevModal } from '@/modules/dev/components/DevModal'
 import { useFpsMonitor } from '@/modules/dev/hooks/useFpsMonitor'
 
@@ -20,7 +20,7 @@ export function TopBar() {
 
   return (
     <>
-      <header className="flex items-center gap-4.5 px-6.5 py-4 border-b border-line bg-linear-to-b from-white/2.5 to-transparent">
+      <header className="flex items-center gap-4.5 px-6.5 py-4 border-b border-line bg-white/5 backdrop-blur-2xl">
 
         {/* Brand */}
         <div className="flex items-baseline gap-2.5 mr-1.5">

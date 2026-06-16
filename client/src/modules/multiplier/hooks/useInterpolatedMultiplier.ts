@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useGameStore } from '@/shared/hooks/useGameStore'
+import { useGameStore } from '@/store/gameStore'
 
 /**
  * Interpolates between 20/s server ticks via rAF for a smooth 60fps display.
