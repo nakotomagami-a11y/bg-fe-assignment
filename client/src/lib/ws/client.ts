@@ -64,7 +64,8 @@ export class WebSocketClient {
     this.ws = ws
 
     ws.onopen = () => {
-      // Don't emit 'live' here — wait for snapshot to confirm full state sync
+      // Socket is open but state not yet confirmed — wait for snapshot before 'live'
+      this.cb.onConnectionPhase('recovering')
     }
 
     ws.onmessage = (event: MessageEvent<string>) => {
@@ -142,7 +143,7 @@ export class WebSocketClient {
     // Jitter spreads simultaneous reconnects across clients so they don't pile on the server
     const base = Math.min(BACKOFF_BASE_MS * 2 ** (this.attempt - 1), BACKOFF_CAP_MS)
     const jitter = base * BACKOFF_JITTER * (Math.random() * 2 - 1)
-    const delay = Math.round(base + jitter)
+    const delay = Math.min(Math.round(base + jitter), BACKOFF_CAP_MS)
 
     this.timer = setTimeout(() => this.openSocket(), delay)
   }

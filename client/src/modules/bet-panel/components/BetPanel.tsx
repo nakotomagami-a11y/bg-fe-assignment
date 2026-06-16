@@ -1,32 +1,18 @@
-import { useState, useEffect, type ReactNode, type ButtonHTMLAttributes } from 'react'
+import { useState, type ReactNode, type ButtonHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils/cn'
-import { match, P } from 'ts-pattern'
-import { useGameStore } from '@/store/gameStore'
-import { wsClient, anchor } from '@/lib/ws/wsService'
-import { timeUntil } from '@/lib/ws/clockSkew'
+import { match } from 'ts-pattern'
+import { useBetPanel, type BetFormStatus } from '../hooks/useBetPanel'
+import { useCountdown } from '../hooks/useCountdown'
 
 const MIN = 1
 const MAX = 500
 const PRESETS = [10, 25, 50, 100]
-
-let betSeq = 0
-const nextClientBetId = () => `c${++betSeq}-${Date.now()}`
 
 function clamp(v: number) {
   return Math.max(MIN, Math.min(MAX, Math.round(v * 100) / 100))
 }
 
 // ─── Status ───────────────────────────────────────────────────────────────────
-
-type BetFormStatus =
-  | { kind: 'ready'; endsAt?: number | null }
-  | { kind: 'pending' }
-  | { kind: 'waiting'; endsAt?: number | null }
-  | { kind: 'rejected'; reason: string | null; onDismiss: () => void }
-  | { kind: 'cashout'; amount: number; multiplier: number; cashing: boolean }
-  | { kind: 'won'; cashedAt: number; payout: number }
-  | { kind: 'lost'; crashAt: number; betAmount: number }
-  | { kind: 'locked'; label: string; sub?: string }
 
 function ActionButton({
   children,
@@ -70,21 +56,11 @@ function BetForm({
 }) {
   const [amount, setAmount] = useState(50)
   const [inputVal, setInputVal] = useState('50.00')
-  const [countdown, setCountdown] = useState('')
 
   const inputDisabled = status.kind !== 'ready'
-
   const endsAt =
     status.kind === 'ready' || status.kind === 'waiting' ? (status.endsAt ?? null) : null
-
-  useEffect(() => {
-    if (endsAt == null) { setCountdown(''); return }
-    const tick = () =>
-      setCountdown(Math.max(0, timeUntil(anchor, endsAt) / 1000).toFixed(1) + 's')
-    tick()
-    const id = setInterval(tick, 100)
-    return () => clearInterval(id)
-  }, [endsAt])
+  const countdown = useCountdown(endsAt)
 
   function set(v: number) {
     const c = clamp(v)
@@ -95,22 +71,13 @@ function BetForm({
   // ─── Hint ────────────────────────────────────────────────────────────────────
 
   const hint = match(status)
-    .with({ kind: P.union('ready', 'pending', 'waiting', 'rejected') }, () => ({
-      pip: 'bg-amber shadow-glow-amber',
-      text: 'pending → confirmed / rejected',
-    }))
-    .with({ kind: 'cashout' }, () => ({
-      pip: 'bg-green shadow-glow-green',
-      text: 'lock your multiplier before it busts',
-    }))
-    .with({ kind: 'won' }, () => ({
-      pip: 'bg-green',
-      text: 'settled · provably fair',
-    }))
-    .otherwise(() => ({
-      pip: 'bg-txt-faint',
-      text: 'settling round · provably fair',
-    }))
+    .with({ kind: 'ready' }, () => ({ pip: 'bg-amber shadow-glow-amber', text: 'pending → confirmed / rejected' }))
+    .with({ kind: 'pending' }, () => ({ pip: 'bg-amber shadow-glow-amber', text: 'pending → confirmed / rejected' }))
+    .with({ kind: 'waiting' }, () => ({ pip: 'bg-amber shadow-glow-amber', text: 'pending → confirmed / rejected' }))
+    .with({ kind: 'rejected' }, () => ({ pip: 'bg-amber shadow-glow-amber', text: 'pending → confirmed / rejected' }))
+    .with({ kind: 'cashout' }, () => ({ pip: 'bg-green shadow-glow-green', text: 'lock your multiplier before it busts' }))
+    .with({ kind: 'won' }, () => ({ pip: 'bg-green', text: 'settled · provably fair' }))
+    .otherwise(() => ({ pip: 'bg-txt-faint', text: 'settling round · provably fair' }))
 
   const actionBtn = match(status)
     .with({ kind: 'ready' }, () => (
@@ -275,74 +242,7 @@ function BetForm({
 // ─── BetPanel ─────────────────────────────────────────────────────────────────
 
 export function BetPanel() {
-  const phase = useGameStore((s) => s.round?.phase)
-  const multiplier = useGameStore((s) => s.round?.multiplier ?? 1)
-  const endsAt = useGameStore((s) => s.round?.phaseEndsAt)
-  const playerBet = useGameStore((s) => s.playerBet)
-  const setPlayerBet = useGameStore((s) => s.setPlayerBet)
-
-  const [cashing, setCashing] = useState(false)
-
-  useEffect(() => {
-    if (playerBet?.status !== 'active') setCashing(false)
-  }, [playerBet?.status])
-
-  function placeBet(amount: number) {
-    if (phase !== 'betting' || playerBet) return
-    const clientBetId = nextClientBetId()
-    wsClient.send({ type: 'place_bet', clientBetId, amount })
-    setPlayerBet({ clientBetId, betId: null, amount, status: 'pending', cashedAt: null, rejectReason: null })
-  }
-
-  function cashOut() {
-    if (!playerBet?.betId || cashing) return
-    wsClient.send({ type: 'cash_out', betId: playerBet.betId })
-    setCashing(true)
-  }
-
-  const status: BetFormStatus = match({ phase, bet: playerBet })
-    .with({ phase: P.nullish }, () => ({ kind: 'locked' as const, label: 'Connecting…' }))
-    .with({ bet: { status: 'pending' } }, () => ({ kind: 'pending' as const }))
-    .with({ bet: { status: 'rejected' } }, ({ bet: b }) => ({
-      kind: 'rejected' as const,
-      reason: b.rejectReason,
-      onDismiss: () => setPlayerBet(null),
-    }))
-    .with({ phase: 'betting', bet: { status: 'active' } }, () => ({
-      kind: 'waiting' as const,
-      endsAt,
-    }))
-    .with({ phase: 'flight', bet: { status: 'active' } }, ({ bet: b }) => ({
-      kind: 'cashout' as const,
-      amount: b.amount,
-      multiplier,
-      cashing,
-    }))
-    .with({ bet: { status: 'cashed_out', cashedAt: P.number } }, ({ bet: b }) => ({
-      kind: 'won' as const,
-      cashedAt: b.cashedAt,
-      payout: b.amount * b.cashedAt,
-    }))
-    .with({ bet: { status: 'lost' } }, ({ bet: b }) => ({
-      kind: 'lost' as const,
-      crashAt: multiplier,
-      betAmount: b.amount,
-    }))
-    .with({ phase: 'flight' }, () => ({
-      kind: 'locked' as const,
-      label: 'Round in progress',
-      sub: `×${multiplier.toFixed(2)}`,
-    }))
-    .with({ phase: 'crashed' }, () => ({
-      kind: 'locked' as const,
-      label: `Crashed @ ${multiplier.toFixed(2)}×`,
-    }))
-    .with({ phase: 'pause' }, () => ({
-      kind: 'locked' as const,
-      label: 'Next round soon',
-    }))
-    .otherwise(() => ({ kind: 'ready' as const, endsAt }))
-
+  const { status, placeBet, cashOut } = useBetPanel()
   return (
     <div className="rounded-xl border border-line bg-linear-to-b from-panel-2 to-panel">
       <BetForm onPlace={placeBet} onCashOut={cashOut} status={status} />

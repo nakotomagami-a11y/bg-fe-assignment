@@ -69,6 +69,30 @@ describe('seqBuffer', () => {
     })
   })
 
+  describe('gap accumulation', () => {
+    it('reset discards all pending buffered messages and starts fresh', () => {
+      let state = createBuffer(0)
+
+      // 2 and 3 arrive but 1 is missing — they accumulate in pending indefinitely
+      state = feed(state, msg(2)).state
+      state = feed(state, msg(3)).state
+      expect(state.pending.size).toBe(2)
+
+      // Snapshot arrives at seq 5 — reset flushes all pending entries
+      state = reset(5)
+      expect(state.pending.size).toBe(0)
+
+      // Old pending messages are now treated as duplicates
+      expect(feed(state, msg(2)).droppedDuplicate).toBe(true)
+      expect(feed(state, msg(3)).droppedDuplicate).toBe(true)
+
+      // Messages after the snapshot proceed normally
+      const r6 = feed(state, msg(6))
+      expect(r6.dispatched).toEqual([msg(6)])
+      expect(r6.droppedDuplicate).toBe(false)
+    })
+  })
+
   describe('snapshot reset', () => {
     it('discards buffered messages with seq at or below the snapshot seq', () => {
       let state = createBuffer(0)
