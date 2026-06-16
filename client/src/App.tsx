@@ -2,6 +2,7 @@ import { useGameStore } from '@/shared/hooks/useGameStore'
 import { TopBar } from '@/components/TopBar'
 import { HeroPanel } from '@/modules/multiplier/components/HeroPanel'
 import { LastRounds } from '@/modules/multiplier/components/LastRounds'
+import { BetPanel } from '@/modules/bet-panel/components/BetPanel'
 
 function AmbientOverlay() {
   const phase = useGameStore((s) => s.round?.phase)
@@ -25,6 +26,7 @@ export default function App() {
             <div className="flex flex-col gap-4.5 lg:w-[460px] lg:shrink-0">
               <HeroPanel />
               <LastRounds />
+              <BetPanel />
             </div>
             <div className="h-[60vh] flex flex-col lg:h-auto lg:flex-1 lg:min-w-0" />
           </div>
