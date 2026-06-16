@@ -51,18 +51,12 @@ export function BetsTable() {
             Waiting for bets…
           </div>
         ) : (
-          <div style={{ height: totalHeight, position: 'relative' }}>
+          <div className="relative" style={{ height: totalHeight }}>
             {items.map((item) => (
               <div
                 key={item.key}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: item.size,
-                  transform: `translateY(${item.start}px)`,
-                }}
+                className="absolute top-0 left-0 w-full h-10 translate-y-[var(--y)]"
+                style={{ '--y': `${item.start}px` } as React.CSSProperties}
               >
                 <BetRow betId={betIds[item.index]} />
               </div>
