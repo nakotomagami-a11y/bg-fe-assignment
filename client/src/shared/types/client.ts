@@ -1,4 +1,4 @@
-export type ClientBetStatus = 'active' | 'cashed_out' | 'pending'
+export type ClientBetStatus = 'active' | 'cashed_out' | 'lost'
 
 export type ClientBet = {
   id: string
@@ -7,6 +7,7 @@ export type ClientBet = {
   status: ClientBetStatus
   cashedAt: number | null
   isYou?: boolean
+  changedAt?: { status?: number; cashedAt?: number }
 }
 
 export type PlayerBet = {

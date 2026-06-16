@@ -8,6 +8,16 @@ const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080'
 // Exposed so countdown components can estimate server time without a store subscription
 export let anchor: TimeAnchor = createAnchor(Date.now())
 
+// rAF-batched queue for bet_updated — one store write per animation frame max
+const betUpdateQueue: Array<{ betId: string; cashedAt: number }> = []
+let rafPending = false
+
+function flushBetUpdates() {
+  rafPending = false
+  if (betUpdateQueue.length === 0) return
+  useGameStore.getState().applyBetUpdates(betUpdateQueue.splice(0))
+}
+
 export const wsClient = new WebSocketClient(WS_URL, {
   onConnectionPhase: (phase) => useGameStore.getState().setConnectionPhase(phase),
 
@@ -38,9 +48,13 @@ export const wsClient = new WebSocketClient(WS_URL, {
       .with({ type: 'bets_placed' }, ({ payload }) =>
         store.applyBetsPlaced(payload.bets),
       )
-      .with({ type: 'bet_updated' }, ({ payload }) =>
-        store.applyBetUpdates([{ betId: payload.betId, cashedAt: payload.cashedAt }]),
-      )
+      .with({ type: 'bet_updated' }, ({ payload }) => {
+        betUpdateQueue.push({ betId: payload.betId, cashedAt: payload.cashedAt })
+        if (!rafPending) {
+          rafPending = true
+          requestAnimationFrame(flushBetUpdates)
+        }
+      })
       .with({ type: 'bet_accepted' }, ({ payload }) =>
         store.updatePlayerBet({ betId: payload.bet.id, status: 'active' }),
       )
