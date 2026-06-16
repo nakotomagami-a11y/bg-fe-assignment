@@ -20,6 +20,7 @@ function MultiplierChip({ value }: { value: number }) {
 
 export function LastRounds() {
   const lastRounds = useGameStore((s) => s.lastRounds)
+  const lastRoundSeq = useGameStore((s) => s.lastRoundSeq)
 
   if (lastRounds.length === 0) return null
 
@@ -27,7 +28,7 @@ export function LastRounds() {
     <div className="rounded-xl border border-line bg-panel px-4 py-3 flex items-center gap-2 flex-wrap">
       <span className="text-label tracking-allcaps uppercase text-txt-faint mr-1">last</span>
       {lastRounds.map((m, i) => (
-        <MultiplierChip key={i} value={m} />
+        <MultiplierChip key={lastRoundSeq - i} value={m} />
       ))}
     </div>
   )

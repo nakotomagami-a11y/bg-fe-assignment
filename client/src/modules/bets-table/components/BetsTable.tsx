@@ -1,11 +1,11 @@
-import { useRef } from 'react'
+import { memo, useRef } from 'react'
 import { useGameStore } from '@/store/gameStore'
 import { useVirtualList } from '../hooks/useVirtualList'
 import { BetRow } from './BetRow'
 
 const ROW_H = 40
 
-export function BetsTable() {
+function BetsTableInner() {
   // betIds reference only changes when bets are added or cleared — not on status
   // updates or multiplier ticks. O(1) reference check; no Array.from or shallow compare.
   const betIds = useGameStore((s) => s.betIds)
@@ -67,3 +67,5 @@ export function BetsTable() {
     </div>
   )
 }
+
+export const BetsTable = memo(BetsTableInner)

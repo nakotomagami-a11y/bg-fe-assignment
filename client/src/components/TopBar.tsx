@@ -3,6 +3,7 @@ import { match } from 'ts-pattern'
 import { useGameStore } from '@/store/gameStore'
 import { DevModal } from '@/modules/dev/components/DevModal'
 import { useFpsMonitor } from '@/modules/dev/hooks/useFpsMonitor'
+import { useClockDrift } from '@/lib/ws/useClockDrift'
 
 export function TopBar() {
   const round = useGameStore((s) => s.round)
@@ -10,6 +11,7 @@ export function TopBar() {
   const connectionPhase = useGameStore((s) => s.connectionPhase)
   const [devOpen, setDevOpen] = useState(false)
   const { fps, frameMs } = useFpsMonitor(true)
+  const drift = useClockDrift()
 
   const badge = match(connectionPhase)
     .with('live', () => ({ dot: 'bg-green shadow-glow-green animate-pulse', label: 'live', text: 'text-txt-dim' }))
@@ -36,7 +38,7 @@ export function TopBar() {
         {/* Connection status */}
         <span className={`inline-flex items-center gap-2 px-3.25 py-1.75 rounded-full text-xs font-medium border border-line-2 bg-white/[0.018] ${badge.text}`}>
           <span className={`size-1.75 rounded-full shrink-0 ${badge.dot}`} />
-          {badge.label} · seq <b className="font-mono text-txt">{stats.lastSeq.toLocaleString()}</b>
+          {badge.label} · seq <b className="font-mono text-txt">{stats.lastSeq.toLocaleString()}</b> · drift <b className="font-mono text-txt">{drift > 0 ? '+' : ''}{drift}ms</b>
         </span>
 
         {/* Round */}

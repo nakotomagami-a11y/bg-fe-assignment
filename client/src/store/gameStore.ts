@@ -19,6 +19,9 @@ type GameState = {
   // an O(n) re-comparison of all keys.
   betIds: string[]
   lastRounds: number[]
+  // Monotonically increasing counter — one per crash. Used as stable React key in
+  // LastRounds: key = lastRoundSeq - i, so prepending a new chip doesn't remount old ones.
+  lastRoundSeq: number
   playerBet: PlayerBet | null
   stats: WsStats
   anomalies: AnomalyEntry[]
@@ -62,6 +65,7 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
   bets: new Map(),
   betIds: [],
   lastRounds: [],
+  lastRoundSeq: 0,
   playerBet: null,
   stats: initialStats,
   anomalies: [],
@@ -72,6 +76,9 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
     set((s) => ({
       round,
       lastRounds,
+      // Set lastRoundSeq to match the number of known past rounds so keys stay stable
+      // across reconnects: key = lastRoundSeq - i gives the same values as before
+      lastRoundSeq: lastRounds.length,
       bets: new Map(bets.map((b) => [b.id, serverBetToClient(b)])),
       betIds: bets.map((b) => b.id),
       // Clear playerBet when the round changed — a stale active/pending bet from the
@@ -105,6 +112,7 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
     set((s) => ({
       round: s.round ? { ...s.round, phase: 'crashed', multiplier: crashMultiplier } : null,
       lastRounds: s.round ? [crashMultiplier, ...s.lastRounds].slice(0, 6) : s.lastRounds,
+      lastRoundSeq: s.round ? s.lastRoundSeq + 1 : s.lastRoundSeq,
       // Terminal-ize both active and pending bets — a pending bet that never got confirmed
       // before the crash should not survive into the next round as a phantom active bet
       playerBet:
