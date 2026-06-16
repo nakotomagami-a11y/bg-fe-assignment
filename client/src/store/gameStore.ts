@@ -14,6 +14,10 @@ type GameState = {
   connectionPhase: ConnectionPhase
   round: RoundState | null
   bets: Map<string, ClientBet>
+  // Stable ordered list of bet IDs — reference only changes when bets are added/cleared,
+  // NOT on status updates. BetsTable subscribes to this so multiplier ticks don't trigger
+  // an O(n) re-comparison of all keys.
+  betIds: string[]
   lastRounds: number[]
   playerBet: PlayerBet | null
   stats: WsStats
@@ -56,6 +60,7 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
   connectionPhase: 'connecting',
   round: null,
   bets: new Map(),
+  betIds: [],
   lastRounds: [],
   playerBet: null,
   stats: initialStats,
@@ -68,20 +73,23 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
       round,
       lastRounds,
       bets: new Map(bets.map((b) => [b.id, serverBetToClient(b)])),
+      betIds: bets.map((b) => b.id),
     }),
 
   applyBettingOpen: (roundId, endsAt) =>
     set((s) => ({
       round: s.round
-        ? { ...s.round, roundId, phase: 'betting', phaseEndsAt: endsAt }
+        ? { ...s.round, roundId, phase: 'betting', multiplier: 1, phaseEndsAt: endsAt }
         : { roundId, phase: 'betting', multiplier: 1, phaseEndsAt: endsAt },
       bets: new Map(),
+      betIds: [],
+      playerBet: null,
     })),
 
   applyRoundStart: (roundId) =>
     set((s) => ({
       round: s.round
-        ? { ...s.round, roundId, phase: 'flight', phaseEndsAt: null }
+        ? { ...s.round, roundId, phase: 'flight', multiplier: 1, phaseEndsAt: null }
         : { roundId, phase: 'flight', multiplier: 1, phaseEndsAt: null },
     })),
 
@@ -91,28 +99,52 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
     })),
 
   applyRoundCrash: (crashMultiplier) =>
-    set((s) => ({
-      round: s.round ? { ...s.round, phase: 'crashed', multiplier: crashMultiplier } : null,
-      lastRounds: s.round
-        ? [crashMultiplier, ...s.lastRounds].slice(0, 6)
-        : s.lastRounds,
-    })),
+    set((s) => {
+      const now = Date.now()
+      const newBets = new Map(s.bets)
+      for (const [id, bet] of newBets) {
+        if (bet.status === 'active') {
+          newBets.set(id, { ...bet, status: 'lost', changedAt: { ...bet.changedAt, status: now } })
+        }
+      }
+      return {
+        round: s.round ? { ...s.round, phase: 'crashed', multiplier: crashMultiplier } : null,
+        lastRounds: s.round ? [crashMultiplier, ...s.lastRounds].slice(0, 6) : s.lastRounds,
+        bets: newBets,
+        // betIds order is unchanged — only statuses changed, no additions or removals
+        playerBet:
+          s.playerBet?.status === 'active' ? { ...s.playerBet, status: 'lost' } : s.playerBet,
+      }
+    }),
 
   applyBetsPlaced: (bets) =>
     set((s) => {
       const next = new Map(s.bets)
+      const incoming = bets.filter((b) => !next.has(b.id))
       for (const b of bets) next.set(b.id, serverBetToClient(b))
-      return { bets: next }
+      return {
+        bets: next,
+        betIds: incoming.length > 0 ? [...s.betIds, ...incoming.map((b) => b.id)] : s.betIds,
+      }
     }),
 
   applyBetUpdates: (updates) =>
     set((s) => {
+      const now = Date.now()
       const next = new Map(s.bets)
       for (const u of updates) {
         const existing = next.get(u.betId)
-        if (existing) next.set(u.betId, { ...existing, status: 'cashed_out', cashedAt: u.cashedAt })
+        if (existing) {
+          next.set(u.betId, {
+            ...existing,
+            status: 'cashed_out',
+            cashedAt: u.cashedAt,
+            changedAt: { ...existing.changedAt, status: now, cashedAt: now },
+          })
+        }
       }
       return { bets: next }
+      // betIds unchanged — no insertions or removals
     }),
 
   setPlayerBet: (bet) => set({ playerBet: bet }),

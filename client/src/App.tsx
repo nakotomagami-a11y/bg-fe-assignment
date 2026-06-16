@@ -1,7 +1,12 @@
 import { useGameStore } from '@/shared/hooks/useGameStore'
-import { TopBar } from '@/modules/connection/components/TopBar'
+import { TopBar } from '@/components/TopBar'
+import { HeroPanel } from '@/modules/multiplier/components/HeroPanel'
+import { LastRounds } from '@/modules/multiplier/components/LastRounds'
+import { BetPanel } from '@/modules/bet-panel/components/BetPanel'
+import { BetsTable } from '@/modules/bets-table/components/BetsTable'
 
-function AmbientOverlay({ phase }: { phase: string | undefined }) {
+function AmbientOverlay() {
+  const phase = useGameStore((s) => s.round?.phase)
   const gradient = phase === 'crashed' ? 'var(--ambient-crashed)' : 'var(--ambient-live)'
   return (
     <div
@@ -12,25 +17,21 @@ function AmbientOverlay({ phase }: { phase: string | undefined }) {
 }
 
 export default function App() {
-  const phase = useGameStore((s) => s.round?.phase)
-
   return (
     <>
-      <AmbientOverlay phase={phase} />
-      <div className="relative z-2 h-full grid grid-rows-[auto_1fr]">
+      <AmbientOverlay />
+      <div className="relative z-2 w-full h-full flex flex-col">
         <TopBar />
-        <div
-          className="grid gap-4.5 px-6.5 pt-4.5 pb-5.5 min-h-0"
-          style={{ gridTemplateColumns: 'minmax(380px,440px) 1fr' }}
-        >
-          <div className="min-h-0 flex flex-col gap-4.5">
-            {/* 2b: HeroPanel */}
-            {/* 2c: LastRounds */}
-            {/* 2c: BetPanel */}
-          </div>
-          <div className="min-h-0 flex flex-col gap-4.5">
-            {/* 2d: BetsTable */}
-            {/* 2e: EventLog */}
+        <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
+          <div className="flex flex-col gap-4.5 px-6.5 pt-4.5 pb-5.5 lg:flex-row lg:h-full">
+            <div className="flex flex-col gap-4.5 lg:w-[460px] lg:shrink-0">
+              <HeroPanel />
+              <LastRounds />
+              <BetPanel />
+            </div>
+            <div className="h-[60vh] flex flex-col lg:h-auto lg:flex-1 lg:min-w-0">
+              <BetsTable />
+            </div>
           </div>
         </div>
       </div>
