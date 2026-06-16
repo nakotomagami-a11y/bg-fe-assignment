@@ -69,12 +69,15 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
   setConnectionPhase: (phase) => set({ connectionPhase: phase }),
 
   applySnapshot: (round, bets, lastRounds) =>
-    set({
+    set((s) => ({
       round,
       lastRounds,
       bets: new Map(bets.map((b) => [b.id, serverBetToClient(b)])),
       betIds: bets.map((b) => b.id),
-    }),
+      // Clear playerBet when the round changed — a stale active/pending bet from the
+      // previous round should not survive a reconnect into a different round
+      playerBet: s.round?.roundId !== round.roundId ? null : s.playerBet,
+    })),
 
   applyBettingOpen: (roundId, endsAt) =>
     set((s) => ({
@@ -99,23 +102,16 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
     })),
 
   applyRoundCrash: (crashMultiplier) =>
-    set((s) => {
-      const now = Date.now()
-      const newBets = new Map(s.bets)
-      for (const [id, bet] of newBets) {
-        if (bet.status === 'active') {
-          newBets.set(id, { ...bet, status: 'lost', changedAt: { ...bet.changedAt, status: now } })
-        }
-      }
-      return {
-        round: s.round ? { ...s.round, phase: 'crashed', multiplier: crashMultiplier } : null,
-        lastRounds: s.round ? [crashMultiplier, ...s.lastRounds].slice(0, 6) : s.lastRounds,
-        bets: newBets,
-        // betIds order is unchanged — only statuses changed, no additions or removals
-        playerBet:
-          s.playerBet?.status === 'active' ? { ...s.playerBet, status: 'lost' } : s.playerBet,
-      }
-    }),
+    set((s) => ({
+      round: s.round ? { ...s.round, phase: 'crashed', multiplier: crashMultiplier } : null,
+      lastRounds: s.round ? [crashMultiplier, ...s.lastRounds].slice(0, 6) : s.lastRounds,
+      // Terminal-ize both active and pending bets — a pending bet that never got confirmed
+      // before the crash should not survive into the next round as a phantom active bet
+      playerBet:
+        s.playerBet?.status === 'active' || s.playerBet?.status === 'pending'
+          ? { ...s.playerBet, status: 'lost' }
+          : s.playerBet,
+    })),
 
   applyBetsPlaced: (bets) =>
     set((s) => {
