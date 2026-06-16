@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { match, P } from 'ts-pattern'
-import { useGameStore } from '@/shared/hooks/useGameStore'
-import { anchor } from '@/ws/wsService'
+import { useGameStore } from '@/store/gameStore'
+import { anchor } from '@/lib/ws/wsService'
 import { useFpsMonitor } from '../hooks/useFpsMonitor'
-import type { AnomalyEntry } from '@/shared/types/client'
+import type { AnomalyEntry } from '@/lib/types/client'
 
 // ─── Sparkline ────────────────────────────────────────────────────────────────
 

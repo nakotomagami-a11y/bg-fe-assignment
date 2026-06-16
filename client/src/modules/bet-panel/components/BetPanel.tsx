@@ -1,9 +1,9 @@
 import { useState, useEffect, type ReactNode, type ButtonHTMLAttributes } from 'react'
-import { cn } from '@/shared/utils/cn'
+import { cn } from '@/lib/utils/cn'
 import { match, P } from 'ts-pattern'
-import { useGameStore } from '@/shared/hooks/useGameStore'
-import { wsClient, anchor } from '@/ws/wsService'
-import { timeUntil } from '@/ws/clockSkew'
+import { useGameStore } from '@/store/gameStore'
+import { wsClient, anchor } from '@/lib/ws/wsService'
+import { timeUntil } from '@/lib/ws/clockSkew'
 
 const MIN = 1
 const MAX = 500

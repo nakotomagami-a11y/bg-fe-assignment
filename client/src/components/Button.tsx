@@ -1,5 +1,5 @@
 import { type ButtonHTMLAttributes } from 'react'
-import { cn } from '@/shared/utils/cn'
+import { cn } from '@/lib/utils/cn'
 
 export type ButtonVariant = 'acid' | 'green' | 'danger' | 'ghost'
 export type ButtonSize = 'sm' | 'md' | 'lg'

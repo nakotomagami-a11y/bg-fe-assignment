@@ -1,12 +1,12 @@
 import { create } from 'zustand'
-import type { RoundState, Bet } from '@/shared/types/server'
+import type { RoundState, Bet } from '@server/protocol/protocol'
 import type {
   ClientBet,
   PlayerBet,
   ConnectionPhase,
   AnomalyEntry,
   WsStats,
-} from '@/shared/types/client'
+} from '@/lib/types/client'
 
 const ANOMALY_RING_SIZE = 50
 

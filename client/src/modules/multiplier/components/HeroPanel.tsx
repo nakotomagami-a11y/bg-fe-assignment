@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { match, P } from 'ts-pattern'
-import { useGameStore } from '@/shared/hooks/useGameStore'
-import { anchor } from '@/ws/wsService'
-import { timeUntil } from '@/ws/clockSkew'
+import { useGameStore } from '@/store/gameStore'
+import { anchor } from '@/lib/ws/wsService'
+import { timeUntil } from '@/lib/ws/clockSkew'
 import { useInterpolatedMultiplier } from '../hooks/useInterpolatedMultiplier'
 import { CrashCurve } from './CrashCurve'
 
