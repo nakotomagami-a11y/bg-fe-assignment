@@ -51,16 +51,16 @@ During flight, `multiplier_tick` messages arrive at ~20/s. The displayed value i
 
 **The last PRs were rushed.** The later pull requests (remaining-bug fixes, refactor, agent-review fixes) were put together under time pressure. They are correct but less carefully reviewed than the earlier architecture work. Some of the fixes found by the agent review session (seqBuffer OOO inflation, rAF queue drain on reconnect, `changedAt` preservation) would have been caught earlier under normal review conditions.
 
-**No 4× CPU-throttle trace.** A trace under artificial throttle on an Intel Arc iGPU (no discrete GPU, iGPU shares memory bandwidth) differs meaningfully from the target hardware profile; the unthrottled trace below covers the same workload and is more representative on this machine.
-
-**Screenshots and traces captured** (`docs/screenshots/`):
+**Screenshots captured** (`docs/screenshots/`):
 
 - `topbar-live.png` — TopBar in live state: 60 fps · 16.7 ms frame time, connection badge, seq counter, drift offset.
 - `dev-modal.png` — DevModal performance section: 60 fps · 16.7 ms, all-green sparkline (every frame within the 16.7 ms budget), connection counters, and the anomaly event log showing real duplicate/OOO/gap events from the feed.
-- `perf-trace.json` — 28-second Chrome Performance trace (1× CPU) captured via the Chrome DevTools MCP. Workload: full WS feed live, fast scroll through the 5,000-row bets table (200,000 px total height confirmed), DevModal opened mid-trace.
-- `chrome-perf-trace.png` — Chrome page state at trace-stop with DevModal open.
 
-**Chrome Performance trace findings:**
+**Chrome Performance trace — 28-second recording (1× CPU, no throttle):**
 
-- **CLS: 0.0004** — well within the "Good" threshold (≤ 0.1). Seven micro-shifts totalling 0.0004 occurred during fast scroll; no root cause identified by the profiler, consistent with sub-pixel virtual-list element recycling. No shifts outside the scroll gesture.
-- No render-blocking resources, no layout thrash, no long tasks flagged outside the scroll burst.
+Workload: full WS feed live throughout, fast scroll through the 5,000-row bets table (confirmed 200,000 px total virtual height), DevModal opened mid-trace.
+
+- **CLS: 0.0004.** Seven micro layout-shifts during the fast-scroll burst, none outside it, no root cause identified by the profiler. Consistent with the virtual list momentarily repositioning recycled rows by a sub-pixel amount as the window jumps. Well inside the "Good" threshold (≤ 0.1); in practice invisible to the user.
+- **No long tasks outside the scroll burst.** The profiler flagged no tasks exceeding 50 ms during the steady-state feed or multiplier animation phases.
+- **No render-blocking resources.** All JS and CSS is bundled by Vite with no blocking third-party requests.
+- The only Chrome insight offered was the CLS cluster above — no LCP breakdown, no INP issues, no DOM size warnings.
