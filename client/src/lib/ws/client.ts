@@ -17,7 +17,7 @@ const BACKOFF_BASE_MS = 1_000
 const BACKOFF_CAP_MS = 30_000
 const BACKOFF_JITTER = 0.25
 
-export type WsCallbacks = {
+type WsCallbacks = {
   onMessage: (msg: AnyServerMessage, anchor: TimeAnchor) => void
   onConnectionPhase: (phase: ConnectionPhase) => void
   onStats: (patch: Partial<WsStats>) => void

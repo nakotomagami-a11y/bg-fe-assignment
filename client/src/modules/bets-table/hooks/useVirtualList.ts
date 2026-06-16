@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-export interface VirtualItem {
+interface VirtualItem {
   index: number
   key: string | number
   start: number  // px offset from top of container
@@ -45,6 +45,9 @@ export function useVirtualList(
     )
   }, [scrollRef, count, itemHeight, overscan])
 
+  // Seed synchronously before first paint so we don't render 30 off-screen rows
+  useLayoutEffect(() => { recompute() }, [recompute])
+
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -57,7 +60,6 @@ export function useVirtualList(
       })
     }
 
-    recompute()                                      // seed on mount
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => {
       el.removeEventListener('scroll', onScroll)

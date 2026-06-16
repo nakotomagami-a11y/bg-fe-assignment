@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
 import { match, P } from 'ts-pattern'
 import { useGameStore } from '@/store/gameStore'
-import { anchor } from '@/lib/ws/wsService'
-import { useFpsMonitor } from '../hooks/useFpsMonitor'
+import { useClockDrift } from '@/lib/ws/useClockDrift'
 import type { AnomalyEntry } from '@/lib/types/client'
 
 // ─── Sparkline ────────────────────────────────────────────────────────────────
@@ -44,21 +42,21 @@ function anomalyColor(entry: AnomalyEntry): string {
     .exhaustive()
 }
 
-export function DevModal({ onClose }: { onClose: () => void }) {
+export function DevModal({
+  onClose,
+  fps,
+  frameMs,
+  buffer,
+}: {
+  onClose: () => void
+  fps: number
+  frameMs: string
+  buffer: number[]
+}) {
   const stats = useGameStore((s) => s.stats)
   const anomalies = useGameStore((s) => s.anomalies)
   const connectionPhase = useGameStore((s) => s.connectionPhase)
-  const { fps, frameMs, buffer } = useFpsMonitor(true)
-
-  const [drift, setDrift] = useState(() => anchor.serverTime - anchor.localTime)
-
-  useEffect(() => {
-    const id = setInterval(
-      () => setDrift(anchor.serverTime - anchor.localTime),
-      250,
-    )
-    return () => clearInterval(id)
-  }, [])
+  const drift = useClockDrift(250)
 
   const phaseColor = match(connectionPhase)
     .with('live', () => 'text-green')
@@ -69,7 +67,7 @@ export function DevModal({ onClose }: { onClose: () => void }) {
   const statRows: [string, React.ReactNode][] = [
     ['Phase', <span className={phaseColor}>{connectionPhase}</span>],
     ['Last seq', stats.lastSeq.toLocaleString()],
-    ['Clock drift', `${drift >= 0 ? '+' : ''}${drift} ms`],
+    ['Clock drift', `${drift > 0 ? '+' : ''}${drift} ms`],
     ['Duplicates dropped', stats.duplicatesDropped],
     ['Out-of-order fixed', stats.outOfOrderFixed],
     ['Gaps detected', stats.gapsDetected],

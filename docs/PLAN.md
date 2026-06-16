@@ -39,6 +39,7 @@ Four-part single-page dashboard over a real-time WebSocket feed:
 **Consciously excluded:**
 - **React Query** — the right tool for HTTP data fetching (caching, background refetch, loading states). No REST endpoints in this project, everything is WebSocket push. Would add it the moment a real API surface appears (e.g. fetching account balance, bet history).
 - **Axios** — same reason. An HTTP client with no HTTP calls is dead weight.
+- **i18n (next-intl / react-i18next / etc.)** — normally a default inclusion in production apps. Excluded here because the spec is a single-locale internal tool; adding an i18n layer would be pure overhead with no benefit in this context.
 
 ---
 

@@ -54,7 +54,7 @@ Redux would also avoid the Context problem, but the boilerplate (action types, r
 
 ## Type reuse from the server
 
-`server/src/protocol/protocol.ts` is the wire protocol source of truth. Rather than copying types into the client, I set up a `@server/*` path alias in `tsconfig.json` and have `src/shared/types/server.ts` re-export from it verbatim. `src/shared/types/client.ts` extends only where the server type isn't enough — adding `'pending'` to bet status, defining `PlayerBet`, `AnomalyEntry`, and `ConnectionPhase`. No risk of the client and server types drifting out of sync.
+`server/src/protocol/protocol.ts` is the wire protocol source of truth. Rather than copying types into the client, I set up a `@server/*` path alias in `tsconfig.json` and import from `@server/protocol/protocol` directly wherever server types are needed. `src/lib/types/client.ts` defines only the client-side extensions — adding `'pending'` and `'lost'` to bet status, defining `PlayerBet`, `AnomalyEntry`, and `ConnectionPhase`. No risk of the client and server types drifting out of sync.
 
 ---
 

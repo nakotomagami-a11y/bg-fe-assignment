@@ -4,7 +4,7 @@ import { useGameStore } from '@/store/gameStore'
 import { wsClient } from '@/lib/ws/wsService'
 
 let betSeq = 0
-export const nextClientBetId = () => `c${++betSeq}-${Date.now()}`
+const nextClientBetId = () => `c${++betSeq}-${Date.now()}`
 
 export type BetFormStatus =
   | { kind: 'ready'; endsAt?: number | null }
@@ -69,6 +69,10 @@ export function useBetPanel() {
       kind: 'won' as const,
       cashedAt: b.cashedAt,
       payout: b.amount * b.cashedAt,
+    }))
+    .with({ bet: { status: 'cashed_out' } }, () => ({
+      kind: 'locked' as const,
+      label: 'Settling…',
     }))
     .with({ bet: { status: 'lost' } }, ({ bet: b }) => ({
       kind: 'lost' as const,

@@ -26,6 +26,10 @@ export function feed<T extends { seq: number }>(
   }
 
   if (seq > state.nextSeq) {
+    // Already buffered — treat as duplicate so gapDetected isn't counted twice
+    if (state.pending.has(seq)) {
+      return { state, dispatched: [], droppedDuplicate: true, gapDetected: false, outOfOrderFixed: 0 }
+    }
     const pending = new Map(state.pending)
     pending.set(seq, msg)
     return {
