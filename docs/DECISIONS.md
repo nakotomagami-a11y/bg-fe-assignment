@@ -55,3 +55,13 @@ Redux would also avoid the Context problem, but the boilerplate (action types, r
 ## Type reuse from the server
 
 `server/src/protocol/protocol.ts` is the wire protocol source of truth. Rather than copying types into the client, I set up a `@server/*` path alias in `tsconfig.json` and have `src/shared/types/server.ts` re-export from it verbatim. `src/shared/types/client.ts` extends only where the server type isn't enough — adding `'pending'` to bet status, defining `PlayerBet`, `AnomalyEntry`, and `ConnectionPhase`. No risk of the client and server types drifting out of sync.
+
+---
+
+## Virtual list — custom hook over TanStack Virtual
+
+Already using TanStack Query elsewhere, so tried `@tanstack/react-virtual` to stay within the same ecosystem. The problem showed up immediately when scrolling fast through the bets table: fps tanked from 60 down to 45. Under the hood TanStack Virtual does a lot more than we need.
+
+Rewrote it as a small hook (~70 lines) based on the [patterns.dev vanilla virtual-list pattern](https://www.patterns.dev/vanilla/virtual-lists/)
+
+Stays at 60fps through fast scroll now. The obvious caveat is that variable row heights aren't supported, but that's not needed here.

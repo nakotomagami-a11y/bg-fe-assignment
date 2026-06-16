@@ -31,7 +31,7 @@ Four-part single-page dashboard over a real-time WebSocket feed:
 | React 19 + TS strict | UI + type safety | Required by assignment |
 | ESLint (flat config) | Lint | Catches hook rule violations and floating promises TS can't see |
 | Zustand | State | Fine-grained subscriptions — Context re-renders everything, Zustand re-renders only what subscribed to the changed slice |
-| TanStack Virtual | List virtualisation | Only visible rows in DOM; 5,000 DOM nodes would kill scroll perf |
+| ~~TanStack Virtual~~ custom `useVirtualList` | List virtualisation | Only visible rows in DOM; 5,000 DOM nodes would kill scroll perf |
 | Tailwind CSS | Styling | Co-located, no CSS-in-JS runtime cost at 200 updates/s |
 | ts-pattern | Pattern matching | Exhaustive matching on WS message types — compile error if a type is unhandled |
 | Vitest | Tests | Same pipeline as Vite, no extra config |
@@ -66,36 +66,36 @@ See `ARCHITECTURE.md` for the full breakdown — data flow, interfaces, file map
 
 ### Phase 2 — Live bets table
 
-- [ ] `BetsTable` with TanStack Virtual
-- [ ] Each row: `React.memo`, subscribes to its own bet by id (not the whole Map)
-- [ ] rAF batch flush: accumulate `bet_updated` events, apply once per animation frame
-- [ ] Round transition: swap to new bets Map atomically, no stutter
-- [ ] Status-change cell highlight via CSS transition + `onTransitionEnd` (no timers)
+- [x] `BetsTable` with custom `useVirtualList` (replaced TanStack Virtual — see DECISIONS.md)
+- [x] Each row: `React.memo`, subscribes to its own bet by id (not the whole Map)
+- [x] rAF batch flush: accumulate `bet_updated` events, apply once per animation frame
+- [x] Round transition: swap to new bets Map atomically, no stutter
+- [x] Status-change cell highlight via CSS `flash-green` / `flash-red` keyframe animations
 
 ### Phase 3 — Multiplier ticker
 
-- [ ] Interpolated animation: rAF loop between ticks for smooth 60 fps display
-- [ ] Crash state: freeze value, red styling, show crash multiplier prominently
-- [ ] Last 6 round results as coloured chips — < 2× red, 2–10× yellow, > 10× green
+- [x] Interpolated animation: rAF loop between ticks for smooth 60 fps display
+- [x] Crash state: freeze value, red styling, show crash multiplier prominently
+- [x] Last rounds as coloured chips — < 2× red, 2–10× amber, > 10× green
 
 ### Phase 4 — Bet panel
 
-- [ ] Place bet: optimistic pending row → confirmed on `bet_accepted` / removed on `bet_rejected`
-- [ ] Cash out button during flight
-- [ ] Handle `cashout_rejected` with `reason: "crashed"` — show "too late", mark lost, never get stuck
-- [ ] Betting countdown: `endsAt` corrected for clock skew, updated every second
+- [x] Place bet: optimistic pending → confirmed on `bet_accepted` / rejected on `bet_rejected`
+- [x] Cash out button during flight with live payout preview
+- [x] Handle `cashout_rejected` with `reason: "crashed"` — mark lost, never get stuck
+- [x] Betting countdown: `endsAt` corrected for clock skew, updated every 100 ms
 
 ### Phase 5 — Connection status bar & dev modal
 
-- [ ] Status badge: `live` / `reconnecting` / `recovering`
-- [ ] Live counters: last seq, clock drift, duplicates dropped, out-of-order fixed, gaps, reconnects
-- [ ] Dev button somewhere in the app (corner, subtle) — opens a dev modal
-  - [ ] Anomaly log: ring buffer, max 50 entries
-  - [ ] Performance monitor: rAF-based FPS + frame time (ms) — see NOTES.md for why rAF and not a library
+- [x] Status badge: `live` / `reconnecting` / `recovering` / `connecting`
+- [x] Live counters: last seq, clock drift, duplicates dropped, out-of-order fixed, gaps, reconnects
+- [x] Dev button in TopBar — opens dev modal
+  - [x] Anomaly log: ring buffer, max 50 entries
+  - [x] Performance monitor: rAF-based FPS + frame time sparkline
 
 ### Phase 6 — Docs & performance gates
 
-- [ ] `DECISIONS.md` — stubs are pre-drafted in `COMMITS.md`, fill during implementation not at the end
+- [x] `DECISIONS.md` — filled during implementation
 - [ ] `PERFORMANCE.md`:
   - [ ] React Profiler screenshot (single-row re-render proof)
   - [ ] Chrome Perf trace at 4× CPU throttle, 30 s scroll (no frame > 16 ms)
