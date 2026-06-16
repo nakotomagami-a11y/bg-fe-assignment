@@ -19,7 +19,15 @@ function flushBetUpdates() {
 }
 
 export const wsClient = new WebSocketClient(WS_URL, {
-  onConnectionPhase: (phase) => useGameStore.getState().setConnectionPhase(phase),
+  onConnectionPhase: (phase) => {
+    // Discard any queued bet updates from the previous connection — they are now stale
+    // and the rAF callback may fire after the new round's bets are already in the store
+    if (phase === 'connecting' || phase === 'reconnecting') {
+      betUpdateQueue.length = 0
+      rafPending = false
+    }
+    useGameStore.getState().setConnectionPhase(phase)
+  },
 
   onStats: (patch) => useGameStore.getState().incrementStats(patch),
 
@@ -29,55 +37,64 @@ export const wsClient = new WebSocketClient(WS_URL, {
     anchor = newAnchor
     const store = useGameStore.getState()
 
-    match(msg)
-      .with({ type: 'snapshot' }, ({ payload }) =>
-        store.applySnapshot(payload.round, payload.bets, payload.lastRounds),
-      )
-      .with({ type: 'betting_open' }, ({ payload }) =>
-        store.applyBettingOpen(payload.roundId, payload.endsAt),
-      )
-      .with({ type: 'round_start' }, ({ payload }) =>
-        store.applyRoundStart(payload.roundId),
-      )
-      .with({ type: 'multiplier_tick' }, ({ payload }) =>
-        store.applyMultiplierTick(payload.value),
-      )
-      .with({ type: 'round_crash' }, ({ payload }) =>
-        store.applyRoundCrash(payload.crashMultiplier),
-      )
-      .with({ type: 'bets_placed' }, ({ payload }) =>
-        store.applyBetsPlaced(payload.bets),
-      )
-      .with({ type: 'bet_updated' }, ({ payload }) => {
-        betUpdateQueue.push({ betId: payload.betId, cashedAt: payload.cashedAt })
-        if (!rafPending) {
-          rafPending = true
-          requestAnimationFrame(flushBetUpdates)
-        }
-      })
-      .with({ type: 'bet_accepted' }, ({ payload }) => {
-        if (store.playerBet?.clientBetId !== payload.clientBetId) return
-        store.updatePlayerBet({ betId: payload.bet.id, status: 'active' })
-      })
-      .with({ type: 'bet_rejected' }, ({ payload }) => {
-        if (store.playerBet?.clientBetId !== payload.clientBetId) return
-        store.updatePlayerBet({ status: 'rejected', rejectReason: payload.reason })
-      })
-      .with({ type: 'cashout_accepted' }, ({ payload }) => {
-        if (store.playerBet?.betId !== payload.betId) return
-        store.updatePlayerBet({ status: 'cashed_out', cashedAt: payload.multiplier })
-      })
-      .with({ type: 'cashout_rejected' }, ({ payload }) => {
-        if (store.playerBet?.betId !== payload.betId) return
-        // 'crashed' means the round ended before the cashout landed — bet is lost, not pending
-        store.updatePlayerBet({
-          status: payload.reason === 'crashed' ? 'lost' : 'active',
-          rejectReason: payload.reason === 'crashed' ? null : payload.reason,
+    try {
+      match(msg)
+        .with({ type: 'snapshot' }, ({ payload }) =>
+          store.applySnapshot(payload.round, payload.bets, payload.lastRounds),
+        )
+        .with({ type: 'betting_open' }, ({ payload }) =>
+          store.applyBettingOpen(payload.roundId, payload.endsAt),
+        )
+        .with({ type: 'round_start' }, ({ payload }) =>
+          store.applyRoundStart(payload.roundId),
+        )
+        .with({ type: 'multiplier_tick' }, ({ payload }) =>
+          store.applyMultiplierTick(payload.value),
+        )
+        .with({ type: 'round_crash' }, ({ payload }) =>
+          store.applyRoundCrash(payload.crashMultiplier),
+        )
+        .with({ type: 'bets_placed' }, ({ payload }) =>
+          store.applyBetsPlaced(payload.bets),
+        )
+        .with({ type: 'bet_updated' }, ({ payload }) => {
+          betUpdateQueue.push({ betId: payload.betId, cashedAt: payload.cashedAt })
+          if (!rafPending) {
+            rafPending = true
+            requestAnimationFrame(flushBetUpdates)
+          }
         })
+        .with({ type: 'bet_accepted' }, ({ payload }) => {
+          if (store.playerBet?.clientBetId !== payload.clientBetId) return
+          store.acceptPlayerBet(payload.bet)
+        })
+        .with({ type: 'bet_rejected' }, ({ payload }) => {
+          if (store.playerBet?.clientBetId !== payload.clientBetId) return
+          store.updatePlayerBet({ status: 'rejected', rejectReason: payload.reason })
+        })
+        .with({ type: 'cashout_accepted' }, ({ payload }) => {
+          if (store.playerBet?.betId !== payload.betId) return
+          store.updatePlayerBet({ status: 'cashed_out', cashedAt: payload.multiplier })
+        })
+        .with({ type: 'cashout_rejected' }, ({ payload }) => {
+          if (store.playerBet?.betId !== payload.betId) return
+          // 'crashed' means the round ended before the cashout landed — bet is lost, not pending
+          store.updatePlayerBet({
+            status: payload.reason === 'crashed' ? 'lost' : 'active',
+            rejectReason: payload.reason === 'crashed' ? null : payload.reason,
+          })
+        })
+        .with({ type: 'error' }, ({ payload }) =>
+          store.recordAnomaly({ at: Date.now(), kind: 'server_error', detail: payload.message }),
+        )
+        .exhaustive()
+    } catch (err) {
+      // Unknown message type from server — log and continue rather than crash
+      store.recordAnomaly({
+        at: Date.now(),
+        kind: 'server_error',
+        detail: `unhandled message type: ${(msg as { type: string }).type}`,
       })
-      .with({ type: 'error' }, ({ payload }) =>
-        store.recordAnomaly({ at: Date.now(), kind: 'server_error', detail: payload.message }),
-      )
-      .exhaustive()
+    }
   },
 })

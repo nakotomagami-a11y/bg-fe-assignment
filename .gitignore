@@ -5,3 +5,5 @@ coverage/
 .env.*.local
 *.log
 .DS_Store
+docs/screenshots/perf-trace.json
+docs/screenshots/chrome-perf-trace.png

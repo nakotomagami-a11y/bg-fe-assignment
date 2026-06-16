@@ -7,7 +7,7 @@ import { BetsTable } from '@/modules/bets-table/components/BetsTable'
 
 function AmbientOverlay() {
   const phase = useGameStore((s) => s.round?.phase)
-  const gradient = phase === 'crashed' ? 'var(--ambient-crashed)' : 'var(--ambient-live)'
+  const gradient = phase === 'crashed' || phase === 'pause' ? 'var(--ambient-crashed)' : 'var(--ambient-live)'
   return (
     <div
       className="fixed inset-0 z-0 pointer-events-none transition-all duration-800"

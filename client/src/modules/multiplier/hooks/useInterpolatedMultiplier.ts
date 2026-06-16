@@ -13,6 +13,7 @@ export function useInterpolatedMultiplier(): number {
   // Mutable refs — updated every tick without triggering re-renders
   const tickRef = useRef({ t: performance.now(), m: 1 })
   const rateRef = useRef(0) // exponential growth rate per ms
+  const peakRef = useRef(1) // high-water mark — multiplier never goes down
   const rafRef = useRef(0)
 
   const [value, setValue] = useState(1)
@@ -21,10 +22,13 @@ export function useInterpolatedMultiplier(): number {
   useEffect(() => {
     const now = performance.now()
     const prev = tickRef.current
-    if (phase === 'flight' && serverValue > prev.m && now > prev.t) {
-      rateRef.current = Math.log(serverValue / prev.m) / (now - prev.t)
+    // Floor at peak: a server value lower than what we've already shown is stale/jitter
+    const m = Math.max(serverValue, peakRef.current)
+    peakRef.current = m
+    if (phase === 'flight' && m > prev.m && now > prev.t) {
+      rateRef.current = Math.log(m / prev.m) / (now - prev.t)
     }
-    tickRef.current = { t: now, m: serverValue }
+    tickRef.current = { t: now, m }
   }, [serverValue, phase])
 
   // Reset when a new betting round opens
@@ -32,6 +36,7 @@ export function useInterpolatedMultiplier(): number {
     if (phase !== 'betting') return
     tickRef.current = { t: performance.now(), m: 1 }
     rateRef.current = 0
+    peakRef.current = 1
     setValue(1)
   }, [phase])
 

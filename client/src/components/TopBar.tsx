@@ -4,13 +4,14 @@ import { useGameStore } from '@/store/gameStore'
 import { DevModal } from '@/modules/dev/components/DevModal'
 import { useFpsMonitor } from '@/modules/dev/hooks/useFpsMonitor'
 import { useClockDrift } from '@/lib/ws/useClockDrift'
+import { Button } from '@/components/Button'
 
 export function TopBar() {
   const round = useGameStore((s) => s.round)
   const stats = useGameStore((s) => s.stats)
   const connectionPhase = useGameStore((s) => s.connectionPhase)
   const [devOpen, setDevOpen] = useState(false)
-  const { fps, frameMs } = useFpsMonitor(true)
+  const { fps, frameMs, buffer } = useFpsMonitor(true)
   const drift = useClockDrift()
 
   const badge = match(connectionPhase)
@@ -57,16 +58,13 @@ export function TopBar() {
         </span>
 
         {/* Dev */}
-        <button
-          onClick={() => setDevOpen(true)}
-          className="px-2 py-1 rounded text-[10px] font-mono uppercase tracking-widest text-txt-faint border border-line hover:border-line-2 hover:text-txt-dim cursor-pointer transition-colors"
-        >
+        <Button variant="outline" size="sm" onClick={() => setDevOpen(true)}>
           dev
-        </button>
+        </Button>
 
       </header>
 
-      {devOpen && <DevModal onClose={() => setDevOpen(false)} />}
+      {devOpen && <DevModal onClose={() => setDevOpen(false)} fps={fps} frameMs={frameMs} buffer={buffer} />}
     </>
   )
 }

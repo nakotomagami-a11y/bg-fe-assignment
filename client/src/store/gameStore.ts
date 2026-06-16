@@ -38,6 +38,7 @@ type GameActions = {
   applyBetUpdates: (updates: Array<{ betId: string; cashedAt: number }>) => void
   setPlayerBet: (bet: PlayerBet | null) => void
   updatePlayerBet: (patch: Partial<PlayerBet>) => void
+  acceptPlayerBet: (bet: Bet) => void
   recordAnomaly: (entry: AnomalyEntry) => void
   incrementStats: (patch: Partial<WsStats>) => void
 }
@@ -76,9 +77,10 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
     set((s) => ({
       round,
       lastRounds,
-      // Set lastRoundSeq to match the number of known past rounds so keys stay stable
-      // across reconnects: key = lastRoundSeq - i gives the same values as before
-      lastRoundSeq: lastRounds.length,
+      // Take the max so keys stay stable across reconnects: the snapshot only carries
+      // the last 6 rounds, so overwriting with lastRounds.length after a mid-session
+      // reconnect would reset seq from e.g. 100 to 6 and remount all existing chips.
+      lastRoundSeq: Math.max(s.lastRoundSeq, lastRounds.length),
       bets: new Map(bets.map((b) => [b.id, serverBetToClient(b)])),
       betIds: bets.map((b) => b.id),
       // Clear playerBet when the round changed — a stale active/pending bet from the
@@ -104,9 +106,13 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
     })),
 
   applyMultiplierTick: (value) =>
-    set((s) => ({
-      round: s.round ? { ...s.round, multiplier: value } : null,
-    })),
+    set((s) => {
+      if (!s.round) return {}
+      // Multiplier is monotonically increasing during flight — floor at current value
+      // so stale/jitter ticks from the server never cause visible backward jumps
+      const multiplier = Math.max(value, s.round.multiplier)
+      return { round: { ...s.round, multiplier } }
+    }),
 
   applyRoundCrash: (crashMultiplier) =>
     set((s) => ({
@@ -125,7 +131,12 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
     set((s) => {
       const next = new Map(s.bets)
       const incoming = bets.filter((b) => !next.has(b.id))
-      for (const b of bets) next.set(b.id, serverBetToClient(b))
+      for (const b of bets) {
+        // Preserve changedAt so a late bets_placed doesn't erase flash timestamps
+        // set by an earlier bet_updated or acceptPlayerBet on the same entry
+        const existing = next.get(b.id)
+        next.set(b.id, { ...serverBetToClient(b), changedAt: existing?.changedAt })
+      }
       return {
         bets: next,
         betIds: incoming.length > 0 ? [...s.betIds, ...incoming.map((b) => b.id)] : s.betIds,
@@ -157,6 +168,18 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
     set((s) => ({
       playerBet: s.playerBet ? { ...s.playerBet, ...patch } : null,
     })),
+
+  acceptPlayerBet: (bet) =>
+    set((s) => {
+      const next = new Map(s.bets)
+      const alreadyInTable = next.has(bet.id)
+      next.set(bet.id, serverBetToClient(bet))
+      return {
+        playerBet: s.playerBet ? { ...s.playerBet, betId: bet.id, status: 'active' } : null,
+        bets: next,
+        betIds: alreadyInTable ? s.betIds : [...s.betIds, bet.id],
+      }
+    }),
 
   recordAnomaly: (entry) =>
     set((s) => ({

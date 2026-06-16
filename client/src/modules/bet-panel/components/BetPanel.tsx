@@ -1,6 +1,8 @@
 import { useState, type ReactNode, type ButtonHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils/cn'
 import { match } from 'ts-pattern'
+import { Button } from '@/components/Button'
+import { Input } from '@/components/Input'
 import { useBetPanel, type BetFormStatus } from '../hooks/useBetPanel'
 import { useCountdown } from '../hooks/useCountdown'
 
@@ -14,22 +16,11 @@ function clamp(v: number) {
 
 // ─── Status ───────────────────────────────────────────────────────────────────
 
-function ActionButton({
-  children,
-  className,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement>) {
+function ActionButton({ children, className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      className={cn(
-        'mt-3.5 w-full rounded-[14px] py-[18px] px-5 text-[18px] font-semibold leading-none',
-        'flex items-center justify-center gap-2.5 transition-transform border-0',
-        className,
-      )}
-      {...props}
-    >
+    <Button size="lg" className={cn('mt-3.5 w-full', className)} {...props}>
       {children}
-    </button>
+    </Button>
   )
 }
 
@@ -71,10 +62,10 @@ function BetForm({
   // ─── Hint ────────────────────────────────────────────────────────────────────
 
   const hint = match(status)
-    .with({ kind: 'ready' }, () => ({ pip: 'bg-amber shadow-glow-amber', text: 'pending → confirmed / rejected' }))
-    .with({ kind: 'pending' }, () => ({ pip: 'bg-amber shadow-glow-amber', text: 'pending → confirmed / rejected' }))
-    .with({ kind: 'waiting' }, () => ({ pip: 'bg-amber shadow-glow-amber', text: 'pending → confirmed / rejected' }))
-    .with({ kind: 'rejected' }, () => ({ pip: 'bg-amber shadow-glow-amber', text: 'pending → confirmed / rejected' }))
+    .with({ kind: 'ready' }, () => ({ pip: 'bg-acid shadow-glow-acid', text: 'place your bet before the round starts' }))
+    .with({ kind: 'pending' }, () => ({ pip: 'bg-amber shadow-glow-amber', text: 'waiting for confirmation…' }))
+    .with({ kind: 'waiting' }, () => ({ pip: 'bg-green shadow-glow-green', text: 'bet confirmed · waiting for take-off' }))
+    .with({ kind: 'rejected' }, () => ({ pip: 'bg-red', text: 'bet rejected · tap to try again' }))
     .with({ kind: 'cashout' }, () => ({ pip: 'bg-green shadow-glow-green', text: 'lock your multiplier before it busts' }))
     .with({ kind: 'won' }, () => ({ pip: 'bg-green', text: 'settled · provably fair' }))
     .otherwise(() => ({ pip: 'bg-txt-faint', text: 'settling round · provably fair' }))
@@ -163,27 +154,19 @@ function BetForm({
       </span>
 
       {/* Amount input */}
-      <div
-        className={cn(
-          'flex items-center gap-2.5 border border-line-2 rounded-[13px] px-[15px] py-[13px] bg-black/25 transition-colors',
-          inputDisabled ? 'opacity-50' : 'focus-within:border-acid/50',
-        )}
-      >
-        <span className="text-acid text-[15px] font-semibold shrink-0">$</span>
-        <input
-          value={inputVal}
-          onChange={(e) => setInputVal(e.target.value)}
-          onBlur={() => {
-            if (inputDisabled) return
-            const n = parseFloat(inputVal)
-            if (!isNaN(n)) set(n)
-            else setInputVal(amount.toFixed(2))
-          }}
-          inputMode="decimal"
-          disabled={inputDisabled}
-          className="flex-1 bg-transparent outline-none font-mono text-2xl font-medium text-txt tabular-nums w-full"
-        />
-      </div>
+      <Input
+        prefix="$"
+        value={inputVal}
+        onChange={(e) => setInputVal(e.target.value)}
+        onBlur={() => {
+          if (inputDisabled) return
+          const n = parseFloat(inputVal)
+          if (!isNaN(n)) set(n)
+          else setInputVal(amount.toFixed(2))
+        }}
+        inputMode="decimal"
+        disabled={inputDisabled}
+      />
 
       {/* Steppers: ½  2×  MAX */}
       <div className="flex gap-[7px] mt-2.5">

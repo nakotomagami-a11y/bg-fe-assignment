@@ -1,22 +1,11 @@
-import { useEffect, useState } from 'react'
 import { match, P } from 'ts-pattern'
 import { useGameStore } from '@/store/gameStore'
-import { anchor } from '@/lib/ws/wsService'
-import { timeUntil } from '@/lib/ws/clockSkew'
 import { useInterpolatedMultiplier } from '../hooks/useInterpolatedMultiplier'
+import { useSecondsUntil } from '../hooks/useSecondsUntil'
 import { CrashCurve } from './CrashCurve'
 
 function Countdown({ endsAt }: { endsAt: number }) {
-  const [secs, setSecs] = useState(() =>
-    Math.max(0, Math.ceil(timeUntil(anchor, endsAt) / 1000)),
-  )
-
-  useEffect(() => {
-    const tick = () => setSecs(Math.max(0, Math.ceil(timeUntil(anchor, endsAt) / 1000)))
-    tick()
-    const id = setInterval(tick, 200)
-    return () => clearInterval(id)
-  }, [endsAt])
+  const secs = useSecondsUntil(endsAt)
 
   return (
     <div className="flex flex-col items-center gap-2">

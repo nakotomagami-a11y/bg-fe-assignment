@@ -39,13 +39,13 @@
 
 | Layer | Allowed | Not allowed |
 |---|---|---|
-| `modules/*/components/*.tsx` | JSX, hook calls, reading from store via selectors | Business logic, WS calls, inline state derivation |
-| `modules/*/hooks/use*.ts` | `useState`, `useEffect`, `useRef`, store selectors, derived values | Returning JSX, importing from `ws/` directly |
+| `modules/*/components/*.tsx` | JSX, hook calls, reading from store via selectors | Business logic, WS calls, store actions |
+| `modules/*/hooks/use*.ts` | `useState`, `useEffect`, `useRef`, store selectors, `lib/ws/*` when acting as ws–React bridge | Returning JSX |
 | `modules/*/utils/*.ts` | Pure functions, formatting, constants | Side effects, React imports, store access |
-| `ws/WebSocketClient.ts` | WebSocket lifecycle, message dispatch, store actions | React, JSX, component imports |
-| `ws/seqBuffer.ts`, `ws/clockSkew.ts` | Pure functions only | Side effects of any kind |
+| `lib/ws/client.ts`, `lib/ws/wsService.ts` | WS lifecycle, message dispatch, store actions | React, JSX, component imports |
+| `lib/ws/seqBuffer.ts`, `lib/ws/clockSkew.ts` | Pure functions only | Side effects of any kind |
 | `store/gameStore.ts` | Zustand state + action handlers | Direct WS calls, JSX |
-| `shared/types/*.ts` | Type definitions, re-exports | Runtime logic beyond re-exports |
+| `lib/types/*.ts` | Type definitions | Runtime logic |
 
 ### File size
 
@@ -66,7 +66,7 @@ Components and hooks should not exceed **400 lines**. Utility files can be longe
 ### Store discipline
 
 - Components never call store actions directly from event handlers — go through a hook
-- No component imports from `ws/` — the WS layer is infrastructure, not a UI dependency
+- No component imports from `lib/ws/` — the WS layer is infrastructure, not a UI dependency
 - Selectors stay in the component or hook that uses them — don't create a `selectors.ts` file prematurely
 
 ---
@@ -92,7 +92,9 @@ Components and hooks should not exceed **400 lines**. Utility files can be longe
 └──┬──────────┬───────────────┬──────────────┬─────────────┘
    │          │               │              │
    ▼          ▼               ▼              ▼
-BetsTable  MultiplierTicker  ConnectionBar  BetPanel
+BetsTable  HeroPanel       TopBar         BetPanel
+           CrashCurve
+           LastRounds
 ```
 
 ---
@@ -141,7 +143,7 @@ Every time we connect (or reconnect) the server immediately sends a full snapsho
 timeLeft = endsAt - (lastServerTime + (Date.now() - lastLocalTime))
 ```
 
-`lastServerTime` and `lastLocalTime` are saved from the last received message. The bracketed part is our best estimate of what the server clock reads right now — the server time we last saw, plus however much local time has passed since. Error is limited to the network latency of that one message, which is negligible for a second-level countdown. On reconnect the snapshot provides a fresh `endsAt` to anchor from.
+`lastServerTime` and `lastLocalTime` are saved from the last received feed message or snapshot. Reply messages (`bet_accepted` etc.) are excluded — their processing delay (200–800 ms) would pollute the anchor. The bracketed part is our best estimate of what the server clock reads right now — the server time we last saw, plus however much local time has passed since. Error is limited to the network latency of that one message, which is negligible for a second-level countdown. On reconnect the snapshot provides a fresh `endsAt` to anchor from.
 
 ---
 
@@ -152,53 +154,54 @@ src/
   modules/
     bets-table/
       components/
-        BetsTable.tsx          — virtualised container
-        BetRow.tsx             — single row, React.memo
+        BetsTable.tsx              — virtualised container, memo-wrapped
+        BetRow.tsx                 — single row, React.memo
       hooks/
-        useBetsTable.ts        — virtualiser setup, scroll container ref
-      utils/
-        formatBet.ts           — display formatting (amounts, multipliers)
+        useVirtualList.ts          — virtualiser setup, scroll container ref
 
     multiplier/
       components/
-        MultiplierTicker.tsx   — multiplier readout, crash state
-        RoundChips.tsx         — last 6 results, colour-coded
+        HeroPanel.tsx              — multiplier readout, crash state, curve host
+        CrashCurve.tsx             — canvas crash curve (heat colour, glow, tip)
+        LastRounds.tsx             — last 6 results, colour-coded
       hooks/
-        useMultiplierInterp.ts — smooth value between server ticks
+        useInterpolatedMultiplier.ts — smooth value between server ticks
+        useCrashHistory.ts         — history buffer + mid-flight page-reload synthesis
+      utils/
+        curveRenderer.ts           — pure canvas drawing (heat, grid, fill, stroke, tip)
 
     bet-panel/
       components/
-        BetPanel.tsx           — place bet / cash out, countdown, state feedback
+        BetPanel.tsx               — place bet / cash out, countdown, state feedback
       hooks/
-        useBetPanel.ts         — bet lifecycle: pending → confirmed/rejected
-        useCountdown.ts        — skew-corrected countdown from endsAt
-      utils/
-        clientBetId.ts         — generates unique clientBetId per bet
-
-    connection/
-      components/
-        ConnectionBar.tsx      — status badge + live counters
+        useBetPanel.ts             — bet lifecycle: pending → confirmed/rejected
+        useCountdown.ts            — skew-corrected countdown from endsAt
 
     dev/
       components/
-        DevModal.tsx           — modal shell + trigger button (fixed corner)
-        AnomalyLog.tsx         — ring buffer display, max 50 entries
-        PerfMonitor.tsx        — FPS + frame ms monitor
+        DevModal.tsx               — dev overlay (FPS, anomaly log, seq stats)
+      hooks/
+        useFpsMonitor.ts           — rAF-based FPS + frame-time sampler
 
-  ws/
-    WebSocketClient.ts         — connect, reconnect, message dispatch, store calls
-    seqBuffer.ts               — ordered, exactly-once delivery (pure, unit tested)
-    clockSkew.ts               — last-message time anchor for countdown (pure, unit tested)
+  components/
+    TopBar.tsx                     — brand, connection badge, round info, dev trigger
+    Button.tsx                     — shared button primitive (solid/outline, sm/lg)
+    Input.tsx                      — shared input with optional currency prefix
+
+  lib/
+    ws/
+      client.ts                    — WebSocket lifecycle, reconnect, message dispatch
+      wsService.ts                 — singleton instance + store action wiring
+      seqBuffer.ts                 — ordered, exactly-once delivery (pure, unit tested)
+      clockSkew.ts                 — last-message time anchor (pure, unit tested)
+      useClockDrift.ts             — React hook: polls anchor for live drift display
+    types/
+      client.ts                    — client-only types: ClientBet, PlayerBet, AnomalyEntry, ConnectionPhase
+    utils/
+      cn.ts                        — clsx + tailwind-merge
 
   store/
-    gameStore.ts               — Zustand store + all action handlers
-
-  shared/
-    types/
-      server.ts                — re-exports server protocol verbatim
-      client.ts                — client-only types: ClientBet, PlayerBet, AnomalyEntry, ConnectionPhase
-    hooks/
-      useGameStore.ts          — typed useStore wrapper
+    gameStore.ts                   — Zustand store + all action handlers
 
   App.tsx
   main.tsx
@@ -222,18 +225,4 @@ src/
 }
 ```
 
-`src/shared/types/server.ts` is a thin re-export:
-
-```ts
-export type {
-  AnyServerMessage,
-  ServerMessage,
-  Bet,
-  RoundState,
-  Phase,
-  BetRejectReason,
-  CashoutRejectReason,
-} from '@server/protocol/protocol'
-```
-
-Everything else in the codebase imports from `@/shared/types/server` or `@/shared/types/client` — never directly from the server path except in `server.ts` itself.
+Components and hooks import server types directly via `@server/protocol/protocol` when needed. Client-only types (`ClientBet`, `PlayerBet`, `AnomalyEntry`, `ConnectionPhase`) live in `src/lib/types/client.ts`.
