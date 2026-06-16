@@ -4,7 +4,7 @@ const BUFFER_SIZE = 60
 const UPDATE_EVERY = 8 // frames between state flushes — keeps display readable
 
 export function useFpsMonitor(enabled: boolean) {
-  const [display, setDisplay] = useState({ fps: 0, frameMs: 0 })
+  const [display, setDisplay] = useState({ fps: 0, frameMs: 0, buffer: [] as number[] })
   const bufRef = useRef<number[]>([])
   const prevRef = useRef<number | null>(null)
   const tickRef = useRef(0)
@@ -23,7 +23,7 @@ export function useFpsMonitor(enabled: boolean) {
         tickRef.current++
         if (tickRef.current % UPDATE_EVERY === 0) {
           const avg = buf.reduce((a, b) => a + b, 0) / buf.length
-          setDisplay({ fps: Math.round(1000 / avg), frameMs: Math.round(avg * 10) / 10 })
+          setDisplay({ fps: Math.round(1000 / avg), frameMs: Math.round(avg * 10) / 10, buffer: [...buf] })
         }
       }
       prevRef.current = now
@@ -39,5 +39,5 @@ export function useFpsMonitor(enabled: boolean) {
     }
   }, [enabled])
 
-  return { ...display, buffer: bufRef.current }
+  return display
 }

@@ -11,7 +11,7 @@ export function useInterpolatedMultiplier(): number {
   const serverValue = useGameStore((s) => s.round?.multiplier ?? 1)
 
   // Mutable refs — updated every tick without triggering re-renders
-  const tickRef = useRef({ t: performance.now(), m: 1 })
+  const tickRef = useRef({ t: 0, m: 1 })
   const rateRef = useRef(0) // exponential growth rate per ms
   const peakRef = useRef(1) // high-water mark — multiplier never goes down
   const rafRef = useRef(0)
@@ -31,19 +31,13 @@ export function useInterpolatedMultiplier(): number {
     tickRef.current = { t: now, m }
   }, [serverValue, phase])
 
-  // Reset when a new betting round opens
+  // Reset refs when a new betting round opens — no setState, return 1 directly during 'betting'
   useEffect(() => {
     if (phase !== 'betting') return
     tickRef.current = { t: performance.now(), m: 1 }
     rateRef.current = 0
     peakRef.current = 1
-    setValue(1)
   }, [phase])
-
-  // Freeze display at crash multiplier
-  useEffect(() => {
-    if (phase === 'crashed' || phase === 'pause') setValue(serverValue)
-  }, [phase, serverValue])
 
   // rAF interpolation loop — only active during flight
   useEffect(() => {
@@ -64,5 +58,8 @@ export function useInterpolatedMultiplier(): number {
     return () => cancelAnimationFrame(rafRef.current)
   }, [phase])
 
+  // Derive fixed values from phase during render — avoids setState in effects
+  if (phase === 'betting') return 1
+  if (phase === 'crashed' || phase === 'pause') return serverValue
   return value
 }

@@ -88,7 +88,7 @@ export const wsClient = new WebSocketClient(WS_URL, {
           store.recordAnomaly({ at: Date.now(), kind: 'server_error', detail: payload.message }),
         )
         .exhaustive()
-    } catch (err) {
+    } catch {
       // Unknown message type from server — log and continue rather than crash
       store.recordAnomaly({
         at: Date.now(),

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { match, P } from 'ts-pattern'
 import { useGameStore } from '@/store/gameStore'
 import { wsClient } from '@/lib/ws/wsService'
@@ -29,10 +29,8 @@ export function useBetPanel() {
   const setPlayerBet = useGameStore((s) => s.setPlayerBet)
 
   const [cashing, setCashing] = useState(false)
-
-  useEffect(() => {
-    if (playerBet?.status !== 'active') setCashing(false)
-  }, [playerBet?.status])
+  // Cashing only makes sense while the bet is still active; derive rather than reset via effect
+  const effectiveCashing = cashing && playerBet?.status === 'active'
 
   function placeBet(amount: number) {
     if (phase !== 'betting' || playerBet) return
@@ -63,7 +61,7 @@ export function useBetPanel() {
       kind: 'cashout' as const,
       amount: b.amount,
       multiplier,
-      cashing,
+      cashing: effectiveCashing,
     }))
     .with({ bet: { status: 'cashed_out', cashedAt: P.number } }, ({ bet: b }) => ({
       kind: 'won' as const,
