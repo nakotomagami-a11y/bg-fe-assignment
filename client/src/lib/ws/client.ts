@@ -75,10 +75,9 @@ export class WebSocketClient {
         return
       }
 
-      this.anchor = createAnchor(msg.serverTime)
-
       if (msg.type === 'snapshot') {
         // Discard anything buffered before the snapshot — it's already accounted for
+        this.anchor = createAnchor(msg.serverTime)
         this.buf = reset(msg.seq)
         this.attempt = 0
         this.cb.onConnectionPhase('live')
@@ -87,9 +86,14 @@ export class WebSocketClient {
       }
 
       if (REPLY_TYPES.has(msg.type)) {
+        // Don't update anchor from replies — they carry 200–800ms server processing
+        // delay and would make the countdown stale by up to that amount
         this.cb.onMessage(msg, this.anchor)
         return
       }
+
+      // Feed messages only — these have fresh broadcast timing
+      this.anchor = createAnchor(msg.serverTime)
 
       const result = feed(this.buf, msg)
       this.buf = result.state

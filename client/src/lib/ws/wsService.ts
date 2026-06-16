@@ -55,22 +55,26 @@ export const wsClient = new WebSocketClient(WS_URL, {
           requestAnimationFrame(flushBetUpdates)
         }
       })
-      .with({ type: 'bet_accepted' }, ({ payload }) =>
-        store.updatePlayerBet({ betId: payload.bet.id, status: 'active' }),
-      )
-      .with({ type: 'bet_rejected' }, ({ payload }) =>
-        store.updatePlayerBet({ status: 'rejected', rejectReason: payload.reason }),
-      )
-      .with({ type: 'cashout_accepted' }, ({ payload }) =>
-        store.updatePlayerBet({ status: 'cashed_out', cashedAt: payload.multiplier }),
-      )
-      .with({ type: 'cashout_rejected' }, ({ payload }) =>
+      .with({ type: 'bet_accepted' }, ({ payload }) => {
+        if (store.playerBet?.clientBetId !== payload.clientBetId) return
+        store.updatePlayerBet({ betId: payload.bet.id, status: 'active' })
+      })
+      .with({ type: 'bet_rejected' }, ({ payload }) => {
+        if (store.playerBet?.clientBetId !== payload.clientBetId) return
+        store.updatePlayerBet({ status: 'rejected', rejectReason: payload.reason })
+      })
+      .with({ type: 'cashout_accepted' }, ({ payload }) => {
+        if (store.playerBet?.betId !== payload.betId) return
+        store.updatePlayerBet({ status: 'cashed_out', cashedAt: payload.multiplier })
+      })
+      .with({ type: 'cashout_rejected' }, ({ payload }) => {
+        if (store.playerBet?.betId !== payload.betId) return
+        // 'crashed' means the round ended before the cashout landed — bet is lost, not pending
         store.updatePlayerBet({
-          // 'crashed' means the round ended before the cashout landed — bet is lost, not pending
           status: payload.reason === 'crashed' ? 'lost' : 'active',
           rejectReason: payload.reason === 'crashed' ? null : payload.reason,
-        }),
-      )
+        })
+      })
       .with({ type: 'error' }, ({ payload }) =>
         store.recordAnomaly({ at: Date.now(), kind: 'server_error', detail: payload.message }),
       )
