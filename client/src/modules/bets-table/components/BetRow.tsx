@@ -1,10 +1,8 @@
 import { memo } from 'react'
+import { match, P } from 'ts-pattern'
 import { cn } from '@/shared/utils/cn'
 import { useGameStore } from '@/shared/hooks/useGameStore'
 
-// Only flash if the change happened within the animation window.
-// Prevents spurious flashes when a row mounts during scroll for a bet
-// that changed long ago.
 const FLASH_MS = 650
 const recent = (ts: number | undefined): boolean =>
   ts !== undefined && Date.now() - ts < FLASH_MS
@@ -13,11 +11,27 @@ function BetRowInner({ betId }: { betId: string }) {
   const bet = useGameStore((s) => s.bets.get(betId))
   if (!bet) return null
 
-  const cashed = bet.status === 'cashed_out'
-  const lost = bet.status === 'lost'
-
   const flashCashout = recent(bet.changedAt?.cashedAt)
   const flashStatus = recent(bet.changedAt?.status)
+
+  const multiplierCell = match(bet)
+    .with({ status: 'cashed_out', cashedAt: P.number }, ({ cashedAt }) => (
+      <span className="text-green">{cashedAt.toFixed(2)}×</span>
+    ))
+    .otherwise(() => <span className="text-txt-faint">—</span>)
+
+  const payoutCell = match(bet)
+    .with({ status: 'cashed_out', cashedAt: P.number }, ({ amount, cashedAt }) => (
+      <span className="text-green">${(amount * cashedAt).toFixed(2)}</span>
+    ))
+    .with({ status: 'lost' }, () => (
+      <span className="text-red/70">bust</span>
+    ))
+    .otherwise(() => <span className="text-txt-faint">—</span>)
+
+  const flashAnim = match(bet.status)
+    .with('cashed_out', () => 'flash-green')
+    .otherwise(() => 'flash-red')
 
   return (
     <div
@@ -27,47 +41,31 @@ function BetRowInner({ betId }: { betId: string }) {
         bet.isYou ? 'bg-acid/4' : 'hover:bg-white/2',
       )}
     >
-      {/* Player */}
       <span
-        className={`truncate font-medium ${bet.isYou ? 'text-acid' : 'text-txt'}`}
+        className={cn('truncate font-medium', bet.isYou ? 'text-acid' : 'text-txt')}
         title={bet.player}
       >
         {bet.isYou ? 'You' : bet.player}
       </span>
 
-      {/* Bet amount */}
       <span className="text-right font-mono text-txt-dim text-xs">
         ${bet.amount.toFixed(2)}
       </span>
 
-      {/* Cashout multiplier — key restarts CSS animation on each new cashout */}
       <span
         key={`co-${bet.changedAt?.cashedAt ?? ''}`}
         className="text-right font-mono text-xs block rounded-sm"
         style={flashCashout ? { animation: 'flash-green 650ms ease-out forwards' } : undefined}
       >
-        {cashed && bet.cashedAt != null ? (
-          <span className="text-green">{bet.cashedAt.toFixed(2)}×</span>
-        ) : (
-          <span className="text-txt-faint">—</span>
-        )}
+        {multiplierCell}
       </span>
 
-      {/* Payout / status — key restarts CSS animation on status change */}
       <span
         key={`st-${bet.changedAt?.status ?? ''}`}
         className="text-right font-mono text-xs block rounded-sm"
-        style={flashStatus ? {
-          animation: `${cashed ? 'flash-green' : 'flash-red'} 650ms ease-out forwards`,
-        } : undefined}
+        style={flashStatus ? { animation: `${flashAnim} 650ms ease-out forwards` } : undefined}
       >
-        {cashed && bet.cashedAt != null ? (
-          <span className="text-green">${(bet.amount * bet.cashedAt).toFixed(2)}</span>
-        ) : lost ? (
-          <span className="text-red/70">bust</span>
-        ) : (
-          <span className="text-txt-faint">—</span>
-        )}
+        {payoutCell}
       </span>
     </div>
   )
