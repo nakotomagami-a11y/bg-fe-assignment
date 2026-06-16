@@ -65,7 +65,7 @@ export function useVirtualList(
       el.removeEventListener('scroll', onScroll)
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [recompute])
+  }, [recompute, scrollRef])
 
   // Recompute when the list grows (new bets added)
   useEffect(() => { recompute() }, [count, recompute])

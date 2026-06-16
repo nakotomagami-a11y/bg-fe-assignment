@@ -18,7 +18,7 @@ export function CrashCurve({ currentMultiplier }: { currentMultiplier: number })
         ? [...historyRef.current, { t: performance.now(), m: currentMultiplier }]
         : historyRef.current
     draw(canvas, pts, phase, currentMultiplier)
-  }, [currentMultiplier, phase])
+  }, [currentMultiplier, phase, historyRef])
 
   return (
     <canvas

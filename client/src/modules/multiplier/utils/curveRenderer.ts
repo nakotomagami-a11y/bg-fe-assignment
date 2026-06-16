@@ -80,7 +80,8 @@ function drawFill(
   const fillPath = new Path2D()
   pts.forEach((p, i) => {
     const x = toX(p.t), y = toY(p.m)
-    i ? fillPath.lineTo(x, y) : fillPath.moveTo(x, y)
+    if (i) fillPath.lineTo(x, y)
+    else fillPath.moveTo(x, y)
   })
   fillPath.lineTo(lx, PAD.t + plotH)
   fillPath.lineTo(PAD.l, PAD.t + plotH)
@@ -102,7 +103,8 @@ function drawCurve(
   ctx.beginPath()
   pts.forEach((p, i) => {
     const x = toX(p.t), y = toY(p.m)
-    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)
+    if (i) ctx.lineTo(x, y)
+    else ctx.moveTo(x, y)
   })
   ctx.shadowColor = `rgba(${r},${g},${b},${crashed ? 0.4 : 0.7})`
   ctx.shadowBlur = crashed ? 10 : 18
