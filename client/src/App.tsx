@@ -1,5 +1,7 @@
 import { useGameStore } from '@/shared/hooks/useGameStore'
 import { TopBar } from '@/components/TopBar'
+import { HeroPanel } from '@/modules/multiplier/components/HeroPanel'
+import { LastRounds } from '@/modules/multiplier/components/LastRounds'
 
 function AmbientOverlay() {
   const phase = useGameStore((s) => s.round?.phase)
@@ -20,7 +22,10 @@ export default function App() {
         <TopBar />
         <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
           <div className="flex flex-col gap-4.5 px-6.5 pt-4.5 pb-5.5 lg:flex-row lg:h-full">
-            <div className="flex flex-col gap-4.5 lg:w-[460px] lg:shrink-0" />
+            <div className="flex flex-col gap-4.5 lg:w-[460px] lg:shrink-0">
+              <HeroPanel />
+              <LastRounds />
+            </div>
             <div className="h-[60vh] flex flex-col lg:h-auto lg:flex-1 lg:min-w-0" />
           </div>
         </div>
