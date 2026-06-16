@@ -34,14 +34,15 @@
   --shadow-glow-acid: 0 0 18px var(--acid);
   --shadow-glow-green: 0 0 10px var(--green);
   --shadow-glow-cyan: 0 0 10px var(--cyan);
+  --shadow-glow-amber: 0 0 8px var(--amber);
 }
 
 :root {
   --ambient-live:
-    radial-gradient(1100px 700px at 26% 12%, color-mix(in srgb, var(--green) 12%, transparent), transparent 60%),
-    radial-gradient(900px 700px at 88% 90%, color-mix(in srgb, var(--violet) 10%, transparent), transparent 60%);
+    radial-gradient(ellipse 80% 60% at 30% 15%, color-mix(in srgb, var(--green) 12%, transparent), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 75% 90%, color-mix(in srgb, var(--violet) 10%, transparent), transparent 60%);
   --ambient-crashed:
-    radial-gradient(1200px 800px at 30% 20%, color-mix(in srgb, var(--red) 20%, transparent), transparent 60%);
+    radial-gradient(ellipse 90% 65% at 50% 20%, color-mix(in srgb, var(--red) 20%, transparent), transparent 60%);
 
   --bg: #06070c;
   --panel: #0d0f18;
@@ -64,6 +65,15 @@
 }
 
 html, body, #root { height: 100%; }
+
+@keyframes flash-green {
+  from { background-color: rgba(31, 224, 122, 0.22); }
+  to   { background-color: transparent; }
+}
+@keyframes flash-red {
+  from { background-color: rgba(255, 58, 85, 0.18); }
+  to   { background-color: transparent; }
+}
 
 body {
   background: var(--bg);
