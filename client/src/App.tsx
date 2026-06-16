@@ -3,6 +3,7 @@ import { TopBar } from '@/components/TopBar'
 import { HeroPanel } from '@/modules/multiplier/components/HeroPanel'
 import { LastRounds } from '@/modules/multiplier/components/LastRounds'
 import { BetPanel } from '@/modules/bet-panel/components/BetPanel'
+import { BetsTable } from '@/modules/bets-table/components/BetsTable'
 
 function AmbientOverlay() {
   const phase = useGameStore((s) => s.round?.phase)
@@ -28,7 +29,9 @@ export default function App() {
               <LastRounds />
               <BetPanel />
             </div>
-            <div className="h-[60vh] flex flex-col lg:h-auto lg:flex-1 lg:min-w-0" />
+            <div className="h-[60vh] flex flex-col lg:h-auto lg:flex-1 lg:min-w-0">
+              <BetsTable />
+            </div>
           </div>
         </div>
       </div>
