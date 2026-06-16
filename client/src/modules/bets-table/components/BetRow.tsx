@@ -9,8 +9,10 @@ const recent = (ts: number | undefined): boolean =>
 
 function BetRowInner({ betId }: { betId: string }) {
   const bet = useGameStore((s) => s.bets.get(betId))
+  const phase = useGameStore((s) => s.round?.phase)
   if (!bet) return null
 
+  const isLost = phase === 'crashed' && bet.status === 'active'
   const flashCashout = recent(bet.changedAt?.cashedAt)
   const flashStatus = recent(bet.changedAt?.status)
 
@@ -24,10 +26,11 @@ function BetRowInner({ betId }: { betId: string }) {
     .with({ status: 'cashed_out', cashedAt: P.number }, ({ amount, cashedAt }) => (
       <span className="text-green">${(amount * cashedAt).toFixed(2)}</span>
     ))
-    .with({ status: 'lost' }, () => (
-      <span className="text-red/70">bust</span>
-    ))
-    .otherwise(() => <span className="text-txt-faint">—</span>)
+    .otherwise(() =>
+      isLost
+        ? <span className="text-red/70">bust</span>
+        : <span className="text-txt-faint">—</span>
+    )
 
   const flashAnim = match(bet.status)
     .with('cashed_out', () => 'flash-green')

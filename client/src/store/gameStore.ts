@@ -99,23 +99,12 @@ export const useGameStore = create<GameState & GameActions>((set) => ({
     })),
 
   applyRoundCrash: (crashMultiplier) =>
-    set((s) => {
-      const now = Date.now()
-      const newBets = new Map(s.bets)
-      for (const [id, bet] of newBets) {
-        if (bet.status === 'active') {
-          newBets.set(id, { ...bet, status: 'lost', changedAt: { ...bet.changedAt, status: now } })
-        }
-      }
-      return {
-        round: s.round ? { ...s.round, phase: 'crashed', multiplier: crashMultiplier } : null,
-        lastRounds: s.round ? [crashMultiplier, ...s.lastRounds].slice(0, 6) : s.lastRounds,
-        bets: newBets,
-        // betIds order is unchanged — only statuses changed, no additions or removals
-        playerBet:
-          s.playerBet?.status === 'active' ? { ...s.playerBet, status: 'lost' } : s.playerBet,
-      }
-    }),
+    set((s) => ({
+      round: s.round ? { ...s.round, phase: 'crashed', multiplier: crashMultiplier } : null,
+      lastRounds: s.round ? [crashMultiplier, ...s.lastRounds].slice(0, 6) : s.lastRounds,
+      playerBet:
+        s.playerBet?.status === 'active' ? { ...s.playerBet, status: 'lost' } : s.playerBet,
+    })),
 
   applyBetsPlaced: (bets) =>
     set((s) => {
