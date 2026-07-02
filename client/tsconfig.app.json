@@ -24,6 +24,7 @@
     },
 
     /* Linting */
+    // BUG #8: "strict": true missing — required by README. Zero new errors when added (after frameMs fix).
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,

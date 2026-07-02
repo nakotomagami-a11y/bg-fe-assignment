@@ -32,6 +32,7 @@ export function feed<T extends { seq: number }>(
     }
     const pending = new Map(state.pending)
     pending.set(seq, msg)
+    // BUG #2: no cap on pending size — a permanent gap stalls the feed forever until reconnect
     return {
       state: { ...state, pending },
       dispatched: [],

@@ -50,7 +50,7 @@ export function DevModal({
 }: {
   onClose: () => void
   fps: number
-  frameMs: string
+  frameMs: string // BUG #8: should be `number` — useFpsMonitor returns number, this breaks the build
   buffer: number[]
 }) {
   const stats = useGameStore((s) => s.stats)

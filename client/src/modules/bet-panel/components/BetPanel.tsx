@@ -1,3 +1,5 @@
+// REFACTOR #7: mixes pure utils (clamp), constants (MIN/MAX/PRESETS/STEPPERS), and 4 components
+// in one file — clamp and constants should live in ../utils/amount.ts (folder exists but is empty)
 import { useState, type ReactNode, type ButtonHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils/cn'
 import { match } from 'ts-pattern'

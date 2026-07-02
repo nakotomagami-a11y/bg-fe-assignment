@@ -1,3 +1,4 @@
+// STRUCTURAL #3: no automated tests for this file — only seqBuffer and clockSkew are tested
 import { match } from 'ts-pattern'
 import { WebSocketClient } from './client'
 import { createAnchor, type TimeAnchor } from './clockSkew'
@@ -6,6 +7,7 @@ import { useGameStore } from '@/store/gameStore'
 const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080'
 
 // Exposed so countdown components can estimate server time without a store subscription
+// STRUCTURAL #4: mutable let export read directly by useClockDrift — anchor belongs in the store
 export let anchor: TimeAnchor = createAnchor(Date.now())
 
 // rAF-batched queue for bet_updated — one store write per animation frame max
@@ -90,6 +92,7 @@ export const wsClient = new WebSocketClient(WS_URL, {
         .exhaustive()
     } catch {
       // Unknown message type from server — log and continue rather than crash
+      // BUG #8: err.message discarded — a store-action bug would be mislabeled as "unhandled type"
       store.recordAnomaly({
         at: Date.now(),
         kind: 'server_error',

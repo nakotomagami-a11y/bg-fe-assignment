@@ -1,3 +1,4 @@
+// STRUCTURAL #3: no automated tests for this class — only seqBuffer and clockSkew are tested
 import type { AnyServerMessage, ClientCommand } from '@server/protocol/protocol'
 import type { ConnectionPhase, WsStats, AnomalyEntry } from '@/lib/types/client'
 import { createBuffer, feed, reset, type SeqBufferState } from './seqBuffer'
@@ -44,6 +45,7 @@ export class WebSocketClient {
     this.openSocket()
   }
 
+  // SILENT FAILURE #5: drops silently when socket isn't OPEN — no return value, no error
   send(cmd: ClientCommand) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(cmd))
@@ -73,6 +75,7 @@ export class WebSocketClient {
       try {
         msg = JSON.parse(event.data) as AnyServerMessage
       } catch {
+        // SILENT FAILURE #5: malformed frames disappear — no anomaly, no counter
         return
       }
 
@@ -94,6 +97,8 @@ export class WebSocketClient {
       }
 
       // Feed messages only — these have fresh broadcast timing
+      // BUG #1: anchor updates here, before the dedup check below — a late duplicate
+      // overwrites a fresh anchor with an older serverTime
       this.anchor = createAnchor(msg.serverTime)
 
       const result = feed(this.buf, msg)
@@ -127,6 +132,7 @@ export class WebSocketClient {
 
     ws.onclose = () => {
       if (this.dead) return
+      // SILENT FAILURE #5: no heartbeat — a silently dead socket won't fire onclose
       this.scheduleReconnect()
     }
 
